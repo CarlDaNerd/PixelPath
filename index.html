@@ -196,7 +196,7 @@
   /* Panels are always light grey regardless of dark/light mode */
   .panel-cell{background:var(--border);position:relative;transition:background 0.1s;}
   .panel-cell.unassigned{background:var(--border);}
-  .panel-cell.assigned{background:var(--text);}
+  .panel-cell.assigned{background:var(--border);}
   /* Empty spacer — matches dark grid background */
   .panel-cell.empty-spacer{background:var(--surface)!important;cursor:default!important;}
   .panel-cell.drag-hover{background:var(--blue-l)!important;box-shadow:inset 0 0 0 2px var(--blue);}
@@ -360,6 +360,12 @@
     .print-legend-dot{width:8px;height:8px;border-radius:2px;}
   }
   #print-container{display:none;}
+  
+	/* Settings segmented buttons */
+	.seg-full{display:flex;border:1px solid var(--border2);border-radius:6px;overflow:hidden;width:100%;}
+	.seg-full-btn{flex:1;font-size:11px;font-weight:500;padding:5px 0;background:transparent;color:var(--text2);border:none;cursor:pointer;font-family:var(--font);text-align:center;transition:all 0.1s;}
+	.seg-full-btn.active{background:var(--blue);color:#fff;}
+	.seg-full-btn:not(.active):hover{background:var(--bg2);}
 </style>
 </head>
 <body>
@@ -467,7 +473,11 @@
     <div id="power-footer">
       <span class="pf-label">Power</span>
       <div id="pf-circuits" style="display:flex;align-items:center;gap:12px;flex:1;overflow:hidden;"></div>
-      <button class="sb-upcoming-btn" id="upcoming-btn" title="What's next" style="margin-left:auto;flex-shrink:0;">
+      <button class="sb-upcoming-btn" id="settings-btn" title="Settings" style="margin-left:auto;flex-shrink:0;margin-right:8px;">
+		<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m5.08 0l4.24-4.24M1 12h6m6 0h6m-1.78 7.78l-4.24-4.24m-5.08 0l-4.24 4.24"></path></svg>
+		Settings
+	  </button>
+	  <button class="sb-upcoming-btn" id="upcoming-btn" title="What's next" style="margin-left:auto;flex-shrink:0;">
         <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.3"/><line x1="7" y1="6" x2="7" y2="10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="7" cy="4" r="0.7" fill="currentColor"/></svg>
         What's next
       </button>
@@ -627,6 +637,76 @@
   </div>
 </div>
 
+<!-- SETTINGS MODAL -->
+<div class="modal-overlay hidden" id="settings-overlay">
+  <div class="modal" style="width:420px;">
+    <div class="modal-head">
+      <span class="modal-title">Settings</span>
+      <span class="modal-close" id="settings-close">✕</span>
+    </div>
+    <div class="modal-body" style="flex-direction:column;gap:16px;">
+      <!-- Theme -->
+      <div>
+        <div class="field-label">Theme</div>
+        <div class="seg-full" id="theme-seg">
+          <button class="seg-full-btn active" data-theme="light">Light</button>
+          <button class="seg-full-btn" data-theme="dark">Dark</button>
+          <button class="seg-full-btn" data-theme="system">System</button>
+        </div>
+      </div>
+
+      <!-- Display -->
+      <div>
+        <div class="field-label">Panel Size</div>
+        <div class="seg-full" id="size-seg">
+          <button class="seg-full-btn" data-size="small">Small</button>
+          <button class="seg-full-btn active" data-size="medium">Medium</button>
+          <button class="seg-full-btn" data-size="large">Large</button>
+        </div>
+      </div>
+
+      <!-- Defaults -->
+      <div>
+        <div class="field-label">Default Voltage</div>
+        <div class="seg-full" id="voltage-seg">
+          <button class="seg-full-btn active" data-voltage="208">208V</button>
+          <button class="seg-full-btn" data-voltage="120">120V</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="field-label">Default Circuit</div>
+        <div class="seg-full" id="circuit-seg">
+          <button class="seg-full-btn active" data-circuit="20">20A</button>
+          <button class="seg-full-btn" data-circuit="15">15A</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="field-label">Default Panel Type</div>
+        <div class="seg-full" id="paneltype-seg">
+          <button class="seg-full-btn active" data-paneltype="gmars">GMARS</button>
+          <button class="seg-full-btn" data-paneltype="f5ip">F5IP</button>
+          <button class="seg-full-btn" data-paneltype="f3x">F3X</button>
+        </div>
+      </div>
+
+      <!-- Export -->
+      <div>
+        <div class="field-label">Export Show Name</div>
+        <input class="name-input" id="settings-showname" type="text" placeholder="e.g. My Event 2026"/>
+      </div>
+
+      <div>
+        <div class="field-label">Date Format</div>
+        <div class="seg-full" id="dateformat-seg">
+          <button class="seg-full-btn active" data-dateformat="long">Month D, YYYY</button>
+          <button class="seg-full-btn" data-dateformat="short">MM/DD/YYYY</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 <!-- LAYOUT VIEW -->
 <div id="layout-view">
   <div id="layout-sidebar-slot"></div>
@@ -2009,7 +2089,91 @@ function loadLocal(){
     if(data.layoutPositions)layoutPositions=data.layoutPositions;
   }catch(e){localStorage.removeItem(STORAGE_KEY);}
 }
+	// ══════════════════════════��════════════════
+	// SETTINGS
+	// ═══════════════════════════════════════════
+	const SETTINGS_KEY='pixelpath-settings';
 
+	function loadSettings(){
+	  try{
+		const saved=localStorage.getItem(SETTINGS_KEY);
+		if(!saved)return;
+		const settings=JSON.parse(saved);
+		// Apply theme
+		if(settings.theme){
+		  document.querySelectorAll('#theme-seg .seg-full-btn').forEach(b=>b.classList.remove('active'));
+		  document.querySelector(`#theme-seg [data-theme="${settings.theme}"]`)?.classList.add('active');
+		}
+		// Apply size
+		if(settings.size){
+		  document.querySelectorAll('#size-seg .seg-full-btn').forEach(b=>b.classList.remove('active'));
+		  document.querySelector(`#size-seg [data-size="${settings.size}"]`)?.classList.add('active');
+		}
+		// Apply voltage
+		if(settings.voltage){
+		  document.querySelectorAll('#voltage-seg .seg-full-btn').forEach(b=>b.classList.remove('active'));
+		  document.querySelector(`#voltage-seg [data-voltage="${settings.voltage}"]`)?.classList.add('active');
+		}
+		// Apply circuit
+		if(settings.circuit){
+		  document.querySelectorAll('#circuit-seg .seg-full-btn').forEach(b=>b.classList.remove('active'));
+		  document.querySelector(`#circuit-seg [data-circuit="${settings.circuit}"]`)?.classList.add('active');
+		}
+		// Apply panel type
+		if(settings.paneltype){
+		  document.querySelectorAll('#paneltype-seg .seg-full-btn').forEach(b=>b.classList.remove('active'));
+		  document.querySelector(`#paneltype-seg [data-paneltype="${settings.paneltype}"]`)?.classList.add('active');
+		}
+		// Apply date format
+		if(settings.dateformat){
+		  document.querySelectorAll('#dateformat-seg .seg-full-btn').forEach(b=>b.classList.remove('active'));
+		  document.querySelector(`#dateformat-seg [data-dateformat="${settings.dateformat}"]`)?.classList.add('active');
+		}
+		// Apply show name
+		if(settings.showname)document.getElementById('settings-showname').value=settings.showname;
+	  }catch(e){}
+	}
+
+	function saveSettings(){
+	  const settings={
+		theme:document.querySelector('#theme-seg .seg-full-btn.active')?.dataset.theme||'light',
+		size:document.querySelector('#size-seg .seg-full-btn.active')?.dataset.size||'medium',
+		voltage:document.querySelector('#voltage-seg .seg-full-btn.active')?.dataset.voltage||'208',
+		circuit:document.querySelector('#circuit-seg .seg-full-btn.active')?.dataset.circuit||'20',
+		paneltype:document.querySelector('#paneltype-seg .seg-full-btn.active')?.dataset.paneltype||'gmars',
+		dateformat:document.querySelector('#dateformat-seg .seg-full-btn.active')?.dataset.dateformat||'long',
+		showname:document.getElementById('settings-showname').value
+	  };
+	  try{localStorage.setItem(SETTINGS_KEY,JSON.stringify(settings));}catch(e){}
+	}
+
+	function openSettingsModal(){
+	  document.getElementById('settings-overlay').classList.remove('hidden');
+	}
+	function closeSettingsModal(){
+	  document.getElementById('settings-overlay').classList.add('hidden');
+	  saveSettings();
+	}
+
+	// Settings modal events
+	document.getElementById('settings-btn').addEventListener('click',openSettingsModal);
+	document.getElementById('settings-close').addEventListener('click',closeSettingsModal);
+	document.getElementById('settings-overlay').addEventListener('click',e=>{if(e.target===document.getElementById('settings-overlay'))closeSettingsModal();});
+
+	// Settings button click handlers
+	document.querySelectorAll('#theme-seg .seg-full-btn, #size-seg .seg-full-btn, #voltage-seg .seg-full-btn, #circuit-seg .seg-full-btn, #paneltype-seg .seg-full-btn, #dateformat-seg .seg-full-btn').forEach(btn=>{
+	  btn.addEventListener('click',e=>{
+		const parent=e.target.closest('.seg-full');
+		parent.querySelectorAll('.seg-full-btn').forEach(b=>b.classList.remove('active'));
+		e.target.classList.add('active');
+		saveSettings();
+	  });
+	});
+
+	document.getElementById('settings-showname').addEventListener('change',saveSettings);
+
+	// Load settings on init
+	loadSettings();
 // ═══════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════

@@ -1,28 +1,2022 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PixelPath v2.05</title>
-    <link rel="stylesheet" href="styles.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PixelPath v2.1.0</title>
+<style>
+  :root {
+    --bg:#f5f4f1;--bg2:#eceae5;--bg3:#e2e0da;--surface:#fff;
+    --border:rgba(0,0,0,0.1);--border2:rgba(0,0,0,0.18);
+    --text:#1a1a18;--text2:#555550;--text3:#999990;
+    --blue:#2563eb;--blue-l:#dbeafe;--blue-m:#93c5fd;--blue-d:#1d4ed8;
+    --green:#16a34a;--green-l:#dcfce7;
+    --red:#dc2626;--red-l:#fee2e2;
+    --unassigned:#c8c6be;
+    --font:'DM Sans',system-ui,sans-serif;
+    --mono:'DM Mono',monospace;
+  }
+  @media(prefers-color-scheme:dark){:root{
+    --bg:#141413;--bg2:#1e1d1b;--bg3:#252420;--surface:#1e1d1b;
+    --border:rgba(255,255,255,0.09);--border2:rgba(255,255,255,0.16);
+    --text:#f0ede8;--text2:#a8a59e;--text3:#5a5852;
+    --blue:#3b82f6;--blue-l:#1e3a5f;--blue-m:#1d4ed8;--blue-d:#60a5fa;
+    --green:#22c55e;--green-l:#14532d;
+    --red:#f87171;--red-l:#450a0a;
+    --unassigned:#2e2d29;
+  }}
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap');
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;overflow:hidden;font-family:var(--font);background:var(--bg);color:var(--text);font-size:13px;}
+
+  /* ── LAYOUT ── */
+  #app{display:flex;height:100vh;}
+  #sidebar{width:168px;flex-shrink:0;border-right:1px solid var(--border);background:var(--surface);display:flex;flex-direction:column;overflow:hidden;}
+  #main{flex:1;display:flex;flex-direction:column;min-width:0;}
+  #canvas-wrap{flex:1;overflow:auto;background:var(--bg);padding:32px;display:flex;align-items:flex-start;justify-content:center;}
+  #power-footer{border-top:1px solid var(--border);background:var(--surface);padding:0 16px;height:34px;display:flex;align-items:center;gap:14px;flex-shrink:0;}
+
+  /* ── SIDEBAR ── */
+  .sb-head{padding:13px 13px 10px;border-bottom:1px solid var(--border);}
+  .sb-name{font-size:13px;font-weight:600;letter-spacing:-0.02em;}
+  .sb-sub{font-size:10px;color:var(--text3);margin-top:1px;}
+  .sb-walls{flex:1;padding:8px 8px 4px;overflow-y:auto;display:flex;flex-direction:column;gap:1px;min-height:0;}
+  .sb-lbl{font-size:9px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;padding:0 5px;margin-bottom:4px;}
+  .wall-item{display:flex;align-items:center;gap:7px;padding:6px 7px;border-radius:6px;cursor:pointer;transition:background 0.12s;}
+  .wall-item:hover{background:var(--bg2);}
+  .wall-item.active{background:var(--blue-l);}
+  .wall-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .wall-name{font-size:12px;color:var(--text2);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .wall-item.active .wall-name{color:var(--blue);font-weight:500;}
+  .wall-check{font-size:11px;color:var(--green);flex-shrink:0;}
+  .wall-edit-btn{display:none;font-size:11px;color:var(--text3);cursor:pointer;padding:2px 3px;border-radius:3px;flex-shrink:0;}
+  .wall-edit-btn:hover{color:var(--text);background:var(--bg3);}
+  .wall-item:hover .wall-edit-btn{display:block;}
+  .wall-item:hover .wall-check{display:none;}
+  .sb-add-wrap{padding:8px;}
+  .add-wall-btn{width:100%;font-size:12px;color:var(--text3);border:1px dashed var(--border2);border-radius:6px;padding:7px 0;text-align:center;cursor:pointer;background:none;font-family:var(--font);transition:all 0.12s;}
+  .add-wall-btn:hover{background:var(--bg2);color:var(--text2);}
+  .sb-footer{padding:8px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:flex-end;}
+  .sb-upcoming-btn{font-size:11px;color:var(--text3);background:none;border:none;cursor:pointer;padding:4px 6px;border-radius:5px;font-family:var(--font);display:flex;align-items:center;gap:4px;transition:all 0.12s;}
+  .sb-upcoming-btn:hover{background:var(--bg2);color:var(--text2);}
+
+  /* Custom shape editor */
+  .shape-editor-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:300;backdrop-filter:blur(2px);}
+  .shape-editor-overlay.hidden{display:none;}
+  .shape-editor{background:var(--surface);border:1px solid var(--border2);border-radius:12px;width:560px;max-width:96vw;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.25);}
+  .se-head{padding:14px 18px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+  .se-title{font-size:15px;font-weight:600;}
+  .se-close{font-size:18px;color:var(--text3);cursor:pointer;padding:2px 4px;border-radius:4px;}
+  .se-close:hover{color:var(--text);background:var(--bg2);}
+  .se-toolbar{padding:10px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+  .se-mode-btn{font-size:11px;font-weight:500;padding:4px 12px;border:1px solid var(--border2);border-radius:5px;background:var(--surface);color:var(--text2);cursor:pointer;font-family:var(--font);transition:all 0.12s;}
+  .se-mode-btn.active{background:var(--blue);color:#fff;border-color:var(--blue);}
+  .se-mode-btn:not(.active):hover{background:var(--bg2);}
+  .se-info{font-size:11px;color:var(--text3);margin-left:auto;}
+  .se-body{padding:18px;display:flex;gap:18px;}
+  .se-grid-wrap{flex:1;}
+  .se-grid{display:grid;gap:2px;cursor:crosshair;user-select:none;}
+  .se-cell{border-radius:2px;transition:background 0.08s;cursor:pointer;}
+  .se-cell.on{background:var(--blue-l);border:1px solid var(--blue-m);}
+  .se-cell.off{background:var(--bg3);border:1px solid var(--border);}
+  .se-cell:hover.on{background:var(--red-l);border-color:var(--red);}
+  .se-cell:hover.off{background:var(--blue-l);border-color:var(--blue-m);}
+  .se-preview-col{width:120px;flex-shrink:0;display:flex;flex-direction:column;gap:8px;}
+  .se-preview-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;}
+  .se-preview-grid{display:grid;gap:1px;background:var(--border);border:1px solid var(--border);}
+  .se-preview-cell-on{background:var(--blue-l);}
+  .se-preview-cell-off{background:transparent;}
+  .se-count{font-size:11px;color:var(--text2);font-family:var(--mono);}
+  .se-foot{padding:12px 18px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+  .se-clear-btn{font-size:11px;color:var(--text3);background:none;border:none;cursor:pointer;font-family:var(--font);padding:4px;}
+  .se-clear-btn:hover{color:var(--red);}
+
+  /* Resize confirm in edit modal */
+  .resize-btn{font-size:12px;font-weight:500;padding:7px 11px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text2);cursor:pointer;font-family:var(--font);text-align:left;transition:all 0.12s;}
+  .resize-btn:hover{background:var(--bg2);}
+
+  /* Upcoming features popup */
+  .upcoming-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.3);display:flex;align-items:flex-end;justify-content:flex-start;z-index:400;padding:0 0 48px 8px;}
+  .upcoming-overlay.hidden{display:none;}
+  .upcoming-popup{background:var(--surface);border:1px solid var(--border2);border-radius:10px;width:260px;box-shadow:0 12px 40px rgba(0,0,0,0.2);overflow:hidden;}
+  .up-head{padding:12px 14px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+  .up-title{font-size:13px;font-weight:600;}
+  .up-close{font-size:15px;color:var(--text3);cursor:pointer;padding:1px 4px;border-radius:3px;}
+  .up-close:hover{color:var(--text);background:var(--bg2);}
+  .up-body{padding:10px 14px 14px;display:flex;flex-direction:column;gap:3px;}
+  .up-section{font-size:9px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-top:8px;margin-bottom:2px;}
+  .up-item{display:flex;align-items:baseline;gap:7px;padding:4px 0;border-bottom:0.5px solid var(--border);}
+  .up-item:last-child{border-bottom:none;}
+  .up-dot{width:5px;height:5px;border-radius:50%;background:var(--text3);flex-shrink:0;margin-top:2px;}
+  .up-dot.soon{background:var(--blue);}
+  .up-dot.big{background:var(--green);}
+  .up-text{font-size:11px;color:var(--text2);line-height:1.4;}
+  .up-tag{font-size:9px;font-weight:600;color:var(--text3);background:var(--bg2);border-radius:3px;padding:1px 5px;white-space:nowrap;}
+
+  /* ── TOPBAR ── */
+  #topbar{background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;height:116px;}
+  #tb-chevron{display:none;}
+  #topbar.expanded #tb-chevron{transform:none;}
+
+  /* Strip — always visible */
+  #tb-strip{height:36px;display:flex;align-items:center;padding:0 14px;gap:10px;}
+  #tb-strip-left{display:flex;align-items:center;gap:8px;flex:1;min-width:0;}
+  .run-pill{font-size:11px;font-weight:600;color:var(--blue);background:var(--blue-l);border-radius:5px;padding:2px 9px;white-space:nowrap;flex-shrink:0;}
+  .run-pill.empty{color:var(--text3);background:var(--bg2);font-weight:400;font-style:italic;}
+  .panel-count-lbl{font-size:11px;color:var(--text3);white-space:nowrap;}
+  #tb-strip-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+  .view-seg{display:flex;border:1px solid var(--border2);border-radius:5px;overflow:hidden;flex-shrink:0;}
+  .view-btn{font-size:11px;font-weight:500;padding:3px 10px;background:transparent;color:var(--text2);border:none;cursor:pointer;font-family:var(--font);transition:all 0.12s;}
+  .view-btn.active{background:var(--blue);color:#fff;}
+  .view-btn:not(.active):hover{background:var(--bg2);}
+  #tb-chevron{font-size:10px;color:var(--text3);cursor:pointer;padding:5px;border-radius:4px;line-height:1;transition:transform 0.2s;user-select:none;}
+  #tb-chevron:hover{background:var(--bg2);}
+  #topbar.expanded #tb-chevron{transform:rotate(180deg);}
+
+  /* Controls row */
+  #tb-controls{height:80px;display:flex;align-items:center;padding:0 14px 10px;gap:0;border-top:1px solid var(--border);}
+  .tb-group{display:flex;flex-direction:column;gap:5px;padding:0 14px;border-right:1px solid var(--border);height:100%;justify-content:center;flex-shrink:0;}
+  .tb-group:first-child{padding-left:0;}
+  .tb-group.no-border{border-right:none;}
+  .tb-group.push-right{margin-left:auto;border-right:none;align-items:flex-end;justify-content:center;}
+  .tb-group-label{font-size:9px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;}
+
+  /* Color swatches — 2 rows of 4 */
+  .swatches{display:grid;grid-template-columns:repeat(4,20px);gap:4px;}
+  .swatch{width:20px;height:20px;border-radius:4px;cursor:pointer;border:2px solid transparent;transition:transform 0.1s;flex-shrink:0;}
+  .swatch:hover{transform:scale(1.18);}
+  .swatch.active{border-color:var(--text);}
+
+  /* Power-only controls */
+  .power-only{display:none;}
+  .power-only.visible{display:flex;}
+  .seg{display:flex;border:1px solid var(--border2);border-radius:5px;overflow:hidden;flex-shrink:0;}
+  .seg-btn{font-size:11px;font-weight:500;padding:4px 9px;background:transparent;color:var(--text2);border:none;cursor:pointer;font-family:var(--font);transition:all 0.12s;white-space:nowrap;}
+  .seg-btn.active{background:var(--blue);color:#fff;}
+  .seg-btn:not(.active):hover{background:var(--bg2);}
+
+  /* Start corner */
+  .sc{display:grid;grid-template-columns:1fr 1fr;gap:3px;width:48px;height:48px;}
+  .sc-btn{border:1px solid var(--border2);border-radius:4px;background:var(--surface);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.1s;padding:3px;}
+  .sc-btn svg{width:10px;height:10px;color:var(--text3);}
+  .sc-btn:hover{background:var(--bg2);border-color:var(--blue);}
+  .sc-btn:hover svg{color:var(--blue);}
+  .sc-btn.active{background:var(--blue-l);border-color:var(--blue);}
+  .sc-btn.active svg{color:var(--blue);}
+  /* Nudge triangles to their corners */
+  .sc-btn.tl{align-items:flex-start;justify-content:flex-start;}
+  .sc-btn.tr{align-items:flex-start;justify-content:flex-end;}
+  .sc-btn.bl{align-items:flex-end;justify-content:flex-start;}
+  .sc-btn.br{align-items:flex-end;justify-content:flex-end;}
+
+  /* Pattern */
+  .pat-row{display:flex;gap:3px;}
+  .pat-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:5px 9px;border:1px solid var(--border2);border-radius:5px;background:var(--surface);cursor:pointer;height:48px;transition:all 0.12s;}
+  .pat-btn.active{border:2px solid var(--blue);background:var(--blue-l);}
+  .pat-btn:not(.active):hover{background:var(--bg2);}
+  .pat-lbl{font-size:8px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.04em;}
+  .pat-btn.active .pat-lbl{color:var(--blue);}
+
+  /* Delete */
+  .delete-run-btn{font-size:11px;font-weight:500;color:var(--red);background:none;border:1px solid var(--border);border-radius:5px;padding:5px 11px;cursor:pointer;font-family:var(--font);white-space:nowrap;transition:all 0.12s;}
+  .delete-run-btn:hover{background:var(--red-l);border-color:var(--red);}
+
+  /* Auto-generate (hidden, infrastructure kept) */
+  #auto-gen-btn{display:none;}
+
+  /* ── CANVAS ── */
+  .wall-frame{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;display:inline-flex;flex-direction:column;gap:10px;}
+  .wall-header{display:flex;align-items:center;gap:8px;}
+  .wall-title{font-size:12px;font-weight:600;color:var(--text2);}
+  .wall-subtitle{font-size:11px;color:var(--text3);}
+  .wall-complete-badge{font-size:10px;font-weight:600;color:var(--green);background:var(--green-l);border-radius:10px;padding:2px 8px;display:flex;align-items:center;gap:4px;}
+  .grid-container{position:relative;display:inline-block;line-height:0;user-select:none;}
+  /* Dark grid background shows through 1px gap = dark lines between light panels */
+  .panel-grid{display:grid;gap:1px;background:#888780;border:1px solid #888780;cursor:crosshair;position:relative;z-index:1;}
+  /* Panels are always light grey regardless of dark/light mode */
+  .panel-cell{background:#d3d1c7;position:relative;transition:background 0.1s;}
+  .panel-cell.unassigned{background:#d3d1c7;}
+  .panel-cell.assigned{background:#d3d1c7;}
+  /* Empty spacer — matches dark grid background */
+  .panel-cell.empty-spacer{background:#888780!important;cursor:default!important;}
+  .panel-cell.drag-hover{background:var(--blue-l)!important;box-shadow:inset 0 0 0 2px var(--blue);}
+  .panel-cell.run-selected{box-shadow:inset 0 0 0 2px var(--blue);}
+  .panel-label{position:absolute;top:3px;left:4px;font-size:9px;font-weight:600;color:var(--text2);font-family:var(--mono);pointer-events:none;}
+  .svg-overlay{position:absolute;top:0;left:0;overflow:visible;z-index:10;pointer-events:none;}
+  .svg-overlay .run-extend-hit{pointer-events:all;}
+  .no-wall{display:flex;flex-direction:column;align-items:center;justify-content:center;height:400px;width:500px;gap:12px;color:var(--text3);}
+  .no-wall-icon{font-size:40px;opacity:0.3;}
+  .no-wall-text{font-size:14px;font-weight:500;}
+  .no-wall-sub{font-size:12px;}
+
+  /* ── POWER FOOTER ── */
+  .pf-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;white-space:nowrap;}
+  .pf-circuit{display:flex;align-items:center;gap:5px;}
+  .pf-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+  .pf-bar-wrap{width:48px;height:4px;background:var(--bg3);border-radius:2px;overflow:hidden;}
+  .pf-bar-fill{height:100%;border-radius:2px;transition:width 0.3s;}
+  .pf-val{font-size:10px;color:var(--text2);white-space:nowrap;font-family:var(--mono);}
+  .pf-val.over{color:var(--red);font-weight:600;}
+
+  /* ── MODALS ── */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;z-index:200;backdrop-filter:blur(2px);}
+  .modal-overlay.hidden{display:none;}
+  .modal{background:var(--surface);border:1px solid var(--border2);border-radius:12px;width:480px;max-width:95vw;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.2);}
+  .modal-head{padding:15px 18px 13px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+  .modal-title{font-size:15px;font-weight:600;}
+  .modal-close{font-size:18px;color:var(--text3);cursor:pointer;padding:2px 4px;border-radius:4px;}
+  .modal-close:hover{color:var(--text);background:var(--bg2);}
+  .modal-body{padding:18px;display:flex;gap:18px;}
+  .modal-body-col{display:flex;flex-direction:column;gap:14px;}
+  .modal-body-col.left{width:180px;flex-shrink:0;}
+  .modal-body-col.right{flex:1;}
+  .modal-foot{padding:13px 18px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;}
+  .field-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;}
+  .name-input{font-size:13px;padding:8px 10px;border:1px solid var(--border2);border-radius:7px;background:var(--bg);color:var(--text);width:100%;font-family:var(--font);outline:none;transition:border-color 0.15s;}
+  .name-input:focus{border-color:var(--blue);}
+  .type-row{display:flex;gap:6px;}
+  .type-card{flex:1;border:1px solid var(--border2);border-radius:8px;padding:10px 6px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all 0.12s;}
+  .type-card:hover{background:var(--bg2);}
+  .type-card.active{border:2px solid var(--blue);background:var(--blue-l);}
+  .type-preview-wrap{height:40px;display:flex;align-items:center;justify-content:center;}
+  .type-preview{background:var(--text3);border-radius:1px;transition:all 0.15s;}
+  .type-card.active .type-preview{background:var(--blue);}
+  .type-name{font-size:11px;font-weight:600;color:var(--text2);}
+  .type-card.active .type-name{color:var(--blue);}
+  .type-sub{font-size:9px;color:var(--text3);}
+  .orient-row{display:flex;gap:5px;}
+  .orient-btn{flex:1;padding:6px 0;border:1px solid var(--border2);border-radius:6px;font-size:11px;font-weight:500;color:var(--text2);text-align:center;cursor:pointer;background:var(--surface);font-family:var(--font);transition:all 0.12s;}
+  .orient-btn:hover:not(.disabled){background:var(--bg2);}
+  .orient-btn.active{border:2px solid var(--blue);background:var(--blue-l);color:var(--blue);}
+  .orient-btn.disabled{opacity:0.3;pointer-events:none;}
+  /* Grid picker */
+  .gp-row-labels{display:flex;margin-left:18px;}
+  .gp-col-lbl{font-size:9px;color:var(--text3);text-align:center;}
+  .gp-row{display:flex;align-items:center;}
+  .gp-row-lbl{font-size:9px;color:var(--text3);text-align:right;padding-right:3px;width:18px;}
+  .gp-cell{border:1px solid var(--border);background:var(--bg2);cursor:pointer;flex-shrink:0;transition:background 0.05s;}
+  .gp-cell.filled{background:var(--blue-m);border-color:var(--blue);}
+  .gp-cell.hovered{background:var(--blue-l);border-color:var(--blue-m);}
+  .preview-grid-wrap{min-height:60px;display:flex;align-items:center;}
+  .preview-grid{display:grid;gap:1px;background:var(--border);border:1px solid var(--border);}
+  .preview-cell{background:var(--blue-l);}
+  .size-readout{font-size:12px;color:var(--blue);font-weight:600;font-family:var(--mono);}
+  .panel-info-txt{font-size:10px;color:var(--text3);}
+  .btn-cancel{font-size:12px;font-weight:500;padding:7px 15px;border:1px solid var(--border2);border-radius:7px;background:var(--surface);color:var(--text2);cursor:pointer;font-family:var(--font);transition:all 0.12s;}
+  .btn-cancel:hover{background:var(--bg2);}
+  .btn-create{font-size:12px;font-weight:600;padding:7px 18px;border:none;border-radius:7px;background:var(--blue);color:#fff;cursor:pointer;font-family:var(--font);transition:background 0.12s;}
+  .btn-create:hover{background:var(--blue-d);}
+
+  /* Prompt modal */
+  .prompt-modal{background:var(--surface);border:1px solid var(--border2);border-radius:10px;width:320px;padding:20px;display:flex;flex-direction:column;gap:13px;box-shadow:0 16px 48px rgba(0,0,0,0.2);}
+  .prompt-title{font-size:14px;font-weight:600;}
+  .prompt-sub{font-size:12px;color:var(--text2);line-height:1.5;}
+  .prompt-btns{display:flex;flex-direction:column;gap:5px;}
+  .prompt-btn{font-size:12px;font-weight:500;padding:9px 13px;border:1px solid var(--border2);border-radius:7px;background:var(--surface);color:var(--text);cursor:pointer;font-family:var(--font);text-align:left;transition:all 0.12s;}
+  .prompt-btn:hover{background:var(--blue-l);border-color:var(--blue);color:var(--blue);}
+  .prompt-btn-cancel{background:none;border:none;font-size:11px;color:var(--text3);cursor:pointer;font-family:var(--font);padding:4px;text-align:center;}
+  .prompt-btn-cancel:hover{color:var(--text);}
+
+  /* Edit wall modal */
+  .edit-modal{background:var(--surface);border:1px solid var(--border2);border-radius:10px;width:260px;padding:16px;display:flex;flex-direction:column;gap:12px;box-shadow:0 16px 48px rgba(0,0,0,0.2);}
+  .edit-modal-title{font-size:13px;font-weight:600;}
+  .edit-modal-actions{display:flex;flex-direction:column;gap:5px;}
+  .edit-action-btn{font-size:12px;font-weight:500;padding:7px 11px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text2);cursor:pointer;font-family:var(--font);text-align:left;transition:all 0.12s;}
+  .edit-action-btn:hover{background:var(--bg2);}
+  .edit-action-btn.danger{color:var(--red);}
+  .edit-action-btn.danger:hover{background:var(--red-l);border-color:var(--red);}
+  .rename-input{font-size:13px;padding:7px 10px;border:1px solid var(--border2);border-radius:6px;background:var(--bg);color:var(--text);width:100%;font-family:var(--font);outline:none;}
+  .rename-input:focus{border-color:var(--blue);}
+
+  /* Generate plan button */
+  .gen-plan-btn{width:100%;font-size:12px;font-weight:600;color:#fff;background:var(--blue);border:none;border-radius:6px;padding:8px 0;cursor:pointer;font-family:var(--font);transition:background 0.12s;}
+  .gen-plan-btn:hover{background:var(--blue-d);}
+
+  /* ── LAYOUT VIEW ── */
+  #layout-view{display:none;position:fixed;inset:0;z-index:50;flex-direction:row;background:var(--bg);}
+  #layout-view.active{display:flex;}
+  #layout-main{flex:1;display:flex;flex-direction:column;min-width:0;}
+  #layout-topbar{height:44px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0;}
+  .layout-back-btn{font-size:12px;font-weight:500;padding:5px 12px;border:1px solid var(--border2);border-radius:6px;background:var(--surface);color:var(--text2);cursor:pointer;font-family:var(--font);transition:all 0.12s;white-space:nowrap;}
+  .layout-back-btn:hover{background:var(--bg2);}
+  #layout-title{font-size:13px;font-weight:600;color:var(--text);}
+  #layout-hint{font-size:10px;color:var(--text3);}
+  #layout-export-btn{font-size:12px;font-weight:600;padding:5px 14px;border:none;border-radius:6px;background:var(--blue);color:#fff;cursor:pointer;font-family:var(--font);margin-left:auto;white-space:nowrap;}
+  #layout-export-btn:hover{background:var(--blue-d);}
+  #layout-canvas{flex:1;overflow:auto;position:relative;background-image:radial-gradient(circle,var(--border2) 1px,transparent 1px);background-size:24px 24px;}
+  #layout-canvas-inner{position:relative;min-width:100%;min-height:100%;}
+  /* Legend */
+  #layout-legend{position:fixed;bottom:16px;right:16px;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:5px;z-index:60;min-width:140px;}
+  .ll-title{font-size:9px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:2px;}
+  .ll-item{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text2);}
+  .ll-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0;}
+  /* Draggable mini walls */
+  .layout-wall{position:absolute;background:var(--surface);border:1px solid var(--border2);border-radius:7px;padding:8px;cursor:grab;user-select:none;transition:box-shadow 0.15s;}
+  .layout-wall:hover{box-shadow:0 4px 16px rgba(0,0,0,0.12);}
+  .layout-wall.dragging{cursor:grabbing;box-shadow:0 8px 24px rgba(0,0,0,0.2);z-index:100;}
+  .lw-header{display:flex;align-items:center;gap:5px;margin-bottom:6px;}
+  .lw-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+  .lw-name{font-size:10px;font-weight:600;color:var(--text2);}
+  .lw-sub{font-size:9px;color:var(--text3);}
+  .lw-grid-wrap{position:relative;line-height:0;}
+  .lw-grid{display:grid;gap:1px;background:var(--border);}
+  .lw-cell{position:relative;}
+  .lw-cell.unassigned{background:var(--bg2);}
+  .lw-cell.assigned{background:var(--surface);}
+  .lw-cell.empty{background:var(--bg);border:none;}
+  .lw-svg{position:absolute;top:0;left:0;pointer-events:none;overflow:visible;}
+
+  /* Export PDF modal */
+  .export-modal{background:var(--surface);border:1px solid var(--border2);border-radius:10px;width:320px;padding:20px;display:flex;flex-direction:column;gap:14px;box-shadow:0 16px 48px rgba(0,0,0,0.2);}
+  .export-modal-title{font-size:14px;font-weight:600;}
+  .export-field{display:flex;flex-direction:column;gap:5px;}
+  .export-field-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;}
+  .export-input{font-size:13px;padding:7px 10px;border:1px solid var(--border2);border-radius:6px;background:var(--bg);color:var(--text);font-family:var(--font);outline:none;width:100%;}
+  .export-input:focus{border-color:var(--blue);}
+  .export-btns{display:flex;gap:8px;justify-content:flex-end;}
+
+  /* ── PRINT STYLES ── */
+  @media print {
+    body{margin:0;padding:0;background:#fff;}
+    #app,#layout-view{display:none!important;}
+    #print-container{display:block!important;}
+    .print-page{width:100%;min-height:100vh;padding:32px;page-break-after:always;background:#fff;position:relative;}
+    .print-page:last-child{page-break-after:avoid;}
+    .print-title-block{margin-bottom:24px;}
+    .print-show-name{font-size:18px;font-weight:700;color:#111;letter-spacing:-0.02em;}
+    .print-meta{font-size:11px;color:#666;margin-top:2px;}
+    .print-sheet-type{font-size:12px;font-weight:600;color:#2563eb;margin-top:4px;text-transform:uppercase;letter-spacing:0.06em;}
+    .print-walls{position:relative;min-height:600px;}
+    .print-wall{position:absolute;background:#fff;}
+    .print-wall-name{font-size:10px;font-weight:600;color:#444;margin-bottom:5px;}
+    .print-grid{display:grid;gap:1px;background:#c8c6be;}
+    .print-cell{background:#e8e7e3;border:none;}
+    .print-cell.unassigned{background:#e8e7e3;}
+    .print-cell.empty{display:none;background:#c8c6be;}
+    .print-svg{position:absolute;top:0;left:0;overflow:visible;pointer-events:none;}
+    .print-legend{position:absolute;bottom:0;right:0;border:1px solid #ddd;border-radius:6px;padding:10px 12px;}
+    .print-legend-title{font-size:9px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:5px;}
+    .print-legend-item{display:flex;align-items:center;gap:5px;font-size:9px;color:#444;margin-bottom:3px;}
+    .print-legend-dot{width:8px;height:8px;border-radius:2px;}
+  }
+  #print-container{display:none;}
+</style>
 </head>
 <body>
-    <header>
-        <h1>Welcome to PixelPath v2.05</h1>
-    </header>
-    <main>
-        <section>
-            <h2>Features</h2>
-            <p>This version includes new features and improvements to enhance user experience.</p>
-        </section>
-        <section>
-            <h2>Getting Started</h2>
-            <p>To get started, ensure you have the following prerequisites...</p>
-        </section>
-    </main>
-    <footer>
-        <p>&copy; 2026 PixelPath. All rights reserved.</p>
-    </footer>
-    <script src="script.js"></script>
+<div id="app">
+  <!-- SIDEBAR -->
+  <div id="sidebar">
+    <div class="sb-head">
+      <div class="sb-name">PixelPath</div>
+      <div class="sb-sub" id="sb-sub">v2.1.0</div>
+    </div>
+    <div class="sb-walls" id="sb-walls">
+      <div class="sb-lbl">Walls</div>
+      <div class="sb-add-wrap" id="sb-add-wrap">
+        <button class="add-wall-btn" id="add-wall-btn">+ new wall</button>
+      </div>
+    </div>
+    <div class="sb-footer">
+      <button class="gen-plan-btn" id="gen-plan-btn">Generate plan ↗</button>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div id="main">
+    <!-- TOPBAR -->
+    <div id="topbar" class="collapsed">
+      <div id="tb-strip">
+        <div id="tb-strip-left">
+          <div class="run-pill empty" id="run-pill">No run selected</div>
+          <div class="panel-count-lbl" id="panel-count-lbl"></div>
+        </div>
+        <div id="tb-strip-right">
+          <div class="view-seg" id="view-seg">
+            <button class="view-btn active" data-view="data">Data</button>
+            <button class="view-btn" data-view="power">Power</button>
+          </div>
+        </div>
+      </div>
+      <div id="tb-controls">
+        <div class="tb-group">
+          <div class="tb-group-label">Color</div>
+          <div class="swatches" id="tb-swatches"></div>
+        </div>
+        <div class="tb-group">
+          <div class="tb-group-label">Start corner</div>
+          <div class="sc" id="tb-sc">
+            <div class="sc-btn tl" data-bias="tl">
+              <svg viewBox="0 0 10 10"><polygon points="1,1 6,1 1,6" fill="currentColor"/></svg>
+            </div>
+            <div class="sc-btn tr" data-bias="tr">
+              <svg viewBox="0 0 10 10"><polygon points="9,1 4,1 9,6" fill="currentColor"/></svg>
+            </div>
+            <div class="sc-btn bl active" data-bias="bl">
+              <svg viewBox="0 0 10 10"><polygon points="1,9 6,9 1,4" fill="currentColor"/></svg>
+            </div>
+            <div class="sc-btn br" data-bias="br">
+              <svg viewBox="0 0 10 10"><polygon points="9,9 4,9 9,4" fill="currentColor"/></svg>
+            </div>
+          </div>
+        </div>
+        <div class="tb-group">
+          <div class="tb-group-label">Pattern</div>
+          <div class="pat-row" id="tb-pat">
+            <div class="pat-btn active" data-pat="rows">
+              <svg width="22" height="17" viewBox="0 0 36 28"><polyline points="2,6 34,6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/><polygon points="31,3 36,6 31,9" fill="currentColor"/><line x1="34" y1="6" x2="34" y2="14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><polyline points="34,14 2,14" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/><polygon points="5,11 0,14 5,17" fill="currentColor"/><line x1="2" y1="14" x2="2" y2="22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><polyline points="2,22 34,22" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/><polygon points="31,19 36,22 31,25" fill="currentColor"/></svg>
+              <span class="pat-lbl">Rows</span>
+            </div>
+            <div class="pat-btn" data-pat="cols">
+              <svg width="17" height="22" viewBox="0 0 28 36"><polyline points="6,2 6,34" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/><polygon points="3,31 6,36 9,31" fill="currentColor"/><line x1="6" y1="34" x2="14" y2="34" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><polyline points="14,34 14,2" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/><polygon points="11,5 14,0 17,5" fill="currentColor"/><line x1="14" y1="2" x2="22" y2="2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><polyline points="22,2 22,34" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/><polygon points="19,31 22,36 25,31" fill="currentColor"/></svg>
+              <span class="pat-lbl">Cols</span>
+            </div>
+          </div>
+        </div>
+        <!-- Auto-generate infrastructure kept, button hidden -->
+        <div class="tb-group no-border" id="auto-gen-group" style="display:none;">
+          <button id="auto-gen-btn">Auto-generate</button>
+        </div>
+        <!-- Power-only: voltage -->
+        <div class="tb-group power-only" id="tb-voltage-group">
+          <div class="tb-group-label">Voltage</div>
+          <div class="seg" id="tb-voltage">
+            <button class="seg-btn active" data-v="208">208V</button>
+            <button class="seg-btn" data-v="120">120V</button>
+          </div>
+        </div>
+        <!-- Power-only: circuit size, only when 120V -->
+        <div class="tb-group power-only" id="tb-circuit-group">
+          <div class="tb-group-label">Circuit</div>
+          <div class="seg" id="tb-circuit">
+            <button class="seg-btn active" data-a="20">20A</button>
+            <button class="seg-btn" data-a="15">15A</button>
+          </div>
+        </div>
+        <div class="tb-group push-right">
+          <button class="delete-run-btn" id="delete-run-btn">✕ Delete run</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CANVAS -->
+    <div id="canvas-wrap">
+      <div id="canvas-inner"></div>
+    </div>
+
+    <!-- POWER FOOTER -->
+    <div id="power-footer">
+      <span class="pf-label">Power</span>
+      <div id="pf-circuits" style="display:flex;align-items:center;gap:12px;flex:1;overflow:hidden;"></div>
+      <button class="sb-upcoming-btn" id="upcoming-btn" title="What's next" style="margin-left:auto;flex-shrink:0;">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.3"/><line x1="7" y1="6" x2="7" y2="10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="7" cy="4" r="0.7" fill="currentColor"/></svg>
+        What's next
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- NEW WALL MODAL -->
+<div class="modal-overlay hidden" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="modal-title" id="modal-title-text">New wall</span>
+      <span class="modal-close" id="modal-close">✕</span>
+    </div>
+    <div class="modal-body">
+      <div class="modal-body-col left">
+        <div>
+          <div class="field-label">Wall name</div>
+          <input class="name-input" id="wall-name-input" type="text" placeholder="e.g. Stage L…"/>
+        </div>
+        <div>
+          <div class="field-label">Panel type</div>
+          <div class="type-row" id="type-row">
+            <div class="type-card active" data-type="gmars">
+              <div class="type-preview-wrap"><div class="type-preview" style="width:26px;height:26px;"></div></div>
+              <div class="type-name">GMARS</div><div class="type-sub">0.5×0.5m</div>
+            </div>
+            <div class="type-card" data-type="f5ip">
+              <div class="type-preview-wrap"><div class="type-preview" style="width:16px;height:34px;"></div></div>
+              <div class="type-name">F5IP</div><div class="type-sub">0.5×1m</div>
+            </div>
+            <div class="type-card" data-type="f3x">
+              <div class="type-preview-wrap"><div class="type-preview" style="width:16px;height:34px;"></div></div>
+              <div class="type-name">F3X</div><div class="type-sub">0.5×1m</div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="field-label">Orientation <span style="font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--text3);">(rect only)</span></div>
+          <div class="orient-row">
+            <div class="orient-btn disabled active" id="orient-v">Vertical</div>
+            <div class="orient-btn disabled" id="orient-h">Horizontal</div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-body-col right">
+        <div>
+          <div class="field-label">Grid size</div>
+          <div id="modal-gp"></div>
+        </div>
+        <div>
+          <div class="field-label" style="margin-bottom:4px;">Preview</div>
+          <div class="preview-grid-wrap"><div class="preview-grid" id="modal-preview"></div></div>
+          <div class="size-readout" id="modal-readout" style="margin-top:5px;">4 × 3 — 12 panels</div>
+          <div class="panel-info-txt" id="modal-panel-info">GMARS · 0.5 × 0.5m square</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" id="modal-cancel">Cancel</button>
+      <button class="btn-cancel" id="modal-custom-shape" style="margin-right:auto;">Custom shape…</button>
+      <button class="btn-create" id="modal-create">Create wall</button>
+    </div>
+  </div>
+</div>
+
+<!-- AUTO-GENERATE PROMPT (infrastructure kept) -->
+<div class="modal-overlay hidden" id="prompt-overlay">
+  <div class="prompt-modal">
+    <div class="prompt-title">Auto-generate runs</div>
+    <div class="prompt-sub">Generate cable runs using current start corner and pattern settings.</div>
+    <div class="prompt-btns">
+      <button class="prompt-btn" id="prompt-replace">Replace all — clear existing and regenerate</button>
+      <button class="prompt-btn" id="prompt-fill">Fill gaps — assign unassigned panels only</button>
+    </div>
+    <button class="prompt-btn-cancel" id="prompt-cancel">Cancel</button>
+  </div>
+</div>
+
+<!-- EDIT WALL MODAL -->
+<div class="modal-overlay hidden" id="edit-overlay">
+  <div class="edit-modal">
+    <div class="edit-modal-title" id="edit-modal-title">Edit wall</div>
+    <input class="rename-input" id="rename-input" type="text"/>
+    <div class="edit-modal-actions">
+      <button class="edit-action-btn" id="rename-save-btn">Save name</button>
+      <button class="edit-action-btn resize-btn" id="resize-wall-btn">Resize wall…</button>
+      <button class="edit-action-btn danger" id="delete-wall-btn">Delete wall</button>
+    </div>
+    <button class="prompt-btn-cancel" id="edit-cancel">Cancel</button>
+  </div>
+</div>
+
+<!-- CUSTOM SHAPE EDITOR -->
+<div class="shape-editor-overlay hidden" id="shape-overlay">
+  <div class="shape-editor">
+    <div class="se-head">
+      <span class="se-title">Custom shape editor</span>
+      <span class="se-close" id="se-close">✕</span>
+    </div>
+    <div class="se-toolbar">
+      <button class="se-mode-btn active" id="se-paint">Paint</button>
+      <button class="se-mode-btn" id="se-erase">Erase</button>
+      <span class="se-info" id="se-info">0 panels selected</span>
+    </div>
+    <div class="se-body">
+      <div class="se-grid-wrap">
+        <div class="se-grid" id="se-grid"></div>
+      </div>
+      <div class="se-preview-col">
+        <div class="se-preview-label">Preview</div>
+        <div class="se-preview-grid" id="se-preview"></div>
+        <div class="se-count" id="se-count">0 panels</div>
+      </div>
+    </div>
+    <div class="se-foot">
+      <button class="se-clear-btn" id="se-clear">Clear all</button>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-cancel" id="se-cancel">Cancel</button>
+        <button class="btn-create" id="se-confirm">Use this shape</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RESIZE CONFIRM -->
+<div class="modal-overlay hidden" id="resize-overlay">
+  <div class="prompt-modal">
+    <div class="prompt-title">Resize wall</div>
+    <div class="prompt-sub">Resizing will clear all existing runs on this wall. Choose a new size below.</div>
+    <div id="resize-gp-wrap" style="margin:4px 0;"></div>
+    <div class="size-readout" id="resize-readout" style="margin-bottom:4px;"></div>
+    <div class="prompt-btns">
+      <button class="prompt-btn" id="resize-confirm-btn">Resize and clear runs</button>
+    </div>
+    <button class="prompt-btn-cancel" id="resize-cancel">Cancel</button>
+  </div>
+</div>
+
+<!-- UPCOMING FEATURES -->
+<div class="upcoming-overlay hidden" id="upcoming-overlay">
+  <div class="upcoming-popup">
+    <div class="up-head">
+      <span class="up-title">What's coming</span>
+      <span class="up-close" id="upcoming-close">✕</span>
+    </div>
+    <div class="up-body">
+      <div class="up-section">Next up — v3.00</div>
+      <div class="up-item"><div class="up-dot big"></div><div class="up-text">Multi-wall view — combine walls on a shared canvas</div><div class="up-tag">v3.00</div></div>
+      <div class="up-item"><div class="up-dot big"></div><div class="up-text">Cross-wall connections — link run endpoints between walls</div><div class="up-tag">v3.00</div></div>
+      <div class="up-item"><div class="up-dot big"></div><div class="up-text">Wall locking when assigned to a multi-view</div><div class="up-tag">v3.00</div></div>
+
+      <div class="up-section">Later</div>
+      <div class="up-item"><div class="up-dot"></div><div class="up-text">JSON export / import for sharing</div><div class="up-tag">future</div></div>
+      <div class="up-item"><div class="up-dot"></div><div class="up-text">Wall resize via right-click on canvas</div><div class="up-tag">future</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- LAYOUT VIEW -->
+<div id="layout-view">
+  <div id="layout-sidebar-slot"></div>
+  <div id="layout-main">
+    <div id="layout-topbar">
+      <button class="layout-back-btn" id="layout-back-btn">← Back to editing</button>
+      <span id="layout-title">Layout canvas</span>
+      <span id="layout-hint">Drag walls to position · snaps to 24px grid</span>
+      <button id="layout-export-btn">Export PDF →</button>
+    </div>
+    <div id="layout-canvas">
+      <div id="layout-canvas-inner"></div>
+    </div>
+  </div>
+  <div id="layout-legend">
+    <div class="ll-title">Circuits</div>
+    <div id="ll-items"></div>
+  </div>
+</div>
+
+<!-- EXPORT PDF MODAL -->
+<div class="modal-overlay hidden" id="export-overlay">
+  <div class="export-modal">
+    <div class="export-modal-title">Export PDF</div>
+    <div class="export-field">
+      <div class="export-field-label">Show name</div>
+      <input class="export-input" id="export-show-name" type="text" placeholder="e.g. Corporate Event 2026"/>
+    </div>
+    <div class="export-field">
+      <div class="export-field-label">Date</div>
+      <input class="export-input" id="export-date" type="text"/>
+    </div>
+    <div class="export-btns">
+      <button class="btn-cancel" id="export-cancel">Cancel</button>
+      <button class="btn-create" id="export-confirm">Print / Save PDF</button>
+    </div>
+  </div>
+</div>
+
+<!-- PRINT CONTAINER -->
+<div id="print-container"></div>
+
+<script>
+// ═══════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════
+const PANEL_TYPES = {
+  gmars:{label:'GMARS',sub:'0.5×0.5m square',square:true, amps208:0.69,amps120:1.19},
+  f5ip: {label:'F5IP', sub:'0.5×1m rect',    square:false,amps208:1.66,amps120:2.88},
+  f3x:  {label:'F3X',  sub:'0.5×1m rect',    square:false,amps208:1.47,amps120:2.54},
+};
+const CIRCUIT_COLORS=['#2563eb','#16a34a','#d97706','#9333ea','#dc2626','#0891b2','#c2410c','#4f46e5'];
+const CIRCUIT_LIGHT =['#dbeafe','#dcfce7','#fef3c7','#f3e8ff','#fee2e2','#cffafe','#ffedd5','#e0e7ff'];
+const SWATCH_COLORS =['#2563eb','#16a34a','#d97706','#9333ea','#dc2626','#0891b2','#c2410c','#4f46e5'];
+const CELL_PX=56, MAX_20=16, MAX_15=12;
+const GP_COLS=12, GP_ROWS=8;
+const STORAGE_KEY='pixelpath-v2';
+
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+let state={
+  walls:[],activeWallId:null,
+  view:'data',bias:'bl',pattern:'rows',
+  selectedRunId:null,
+  voltage:208,circuitSize:20,
+  history:[],histIdx:-1,
+};
+let mState={cols:4,rows:3,type:'gmars',vertical:true};
+let dragState={active:false,cells:new Set()};
+
+const nextId=()=>'_'+Math.random().toString(36).slice(2,9);
+const getWall=id=>state.walls.find(w=>w.id===id);
+const getActive=()=>getWall(state.activeWallId);
+const maxAmps=(wall)=>{
+  const w=wall||getActive();
+  const cs=w?.circuitSize||20;
+  return cs===20?MAX_20:MAX_15;
+};
+const pAmps=(type,wall)=>{
+  const w=wall||getActive();
+  const v=w?.voltage||208;
+  return v===208?PANEL_TYPES[type].amps208:PANEL_TYPES[type].amps120;
+};
+const wallRuns=wall=>state.view==='data'?wall.dataRuns:wall.powerRuns;
+const wallRunsFor=(wall,v)=>v==='data'?wall.dataRuns:wall.powerRuns;
+
+// ═══════════════════════════════════════════
+// HISTORY
+// ═══════════════════════════════════════════
+function pushHistory(){
+  const snap=JSON.stringify(state.walls);
+  state.history=state.history.slice(0,state.histIdx+1);
+  state.history.push(snap);
+  if(state.history.length>80)state.history.shift();
+  state.histIdx=state.history.length-1;
+}
+function undo(){
+  if(state.histIdx<=0)return;
+  state.histIdx--;
+  state.walls=JSON.parse(state.history[state.histIdx]);
+  if(!getWall(state.activeWallId))state.activeWallId=state.walls[0]?.id||null;
+  state.selectedRunId=null; renderAll();
+}
+function redo(){
+  if(state.histIdx>=state.history.length-1)return;
+  state.histIdx++;
+  state.walls=JSON.parse(state.history[state.histIdx]);
+  if(!getWall(state.activeWallId))state.activeWallId=state.walls[0]?.id||null;
+  state.selectedRunId=null; renderAll();
+}
+document.addEventListener('keydown',e=>{
+  if((e.ctrlKey||e.metaKey)&&e.key==='z'&&!e.shiftKey){e.preventDefault();undo();}
+  if((e.ctrlKey||e.metaKey)&&(e.key==='y'||(e.key==='z'&&e.shiftKey))){e.preventDefault();redo();}
+});
+
+// ═══════════════════════════════════════════
+// WALL OPS
+// ═══════════════════════════════════════════
+function createWall(name,type,cols,rows,vertical){
+  const panels=[];
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++)
+    panels.push({id:nextId(),col:c,row:r,
+      data:{runId:null,seq:null,circuitIdx:null},
+      power:{runId:null,seq:null,circuitIdx:null}});
+  return{id:nextId(),name,type,cols,rows,vertical,panels,dataRuns:[],powerRuns:[],
+    voltage:208,circuitSize:20,customShape:false};
+}
+function addWall(name,type,cols,rows,vertical){
+  pushHistory();
+  const w=createWall(name,type,cols,rows,vertical);
+  state.walls.push(w); state.activeWallId=w.id; state.selectedRunId=null;
+  renderAll(); saveLocal();
+}
+function deleteWall(id){
+  pushHistory();
+  state.walls=state.walls.filter(w=>w.id!==id);
+  if(state.activeWallId===id)state.activeWallId=state.walls[0]?.id||null;
+  state.selectedRunId=null; renderAll(); saveLocal();
+}
+function renameWall(id,name){
+  const w=getWall(id); if(!w)return;
+  pushHistory(); w.name=name; renderAll(); saveLocal();
+}
+function isComplete(wall){return wall.panels.every(p=>p[state.view].runId!==null);}
+
+// ═══════════════════════════════════════════
+// RUN OPS
+// ═══════════════════════════════════════════
+function createRun(wall,panelIds,colorOverride){
+  const v=state.view, runs=wallRuns(wall);
+  const pa=pAmps(wall.type,wall), limit=maxAmps(wall);
+  let ci=0;
+  const usage={};
+  runs.forEach(r=>r.panelIds.forEach(pid=>{
+    const p=wall.panels.find(p=>p.id===pid);
+    if(p&&p[v].circuitIdx!==null)usage[p[v].circuitIdx]=(usage[p[v].circuitIdx]||0)+pa;
+  }));
+  const needed=pa*panelIds.length;
+  for(let i=0;i<16;i++){if((usage[i]||0)+needed<=limit){ci=i;break;}}
+  const color=colorOverride||CIRCUIT_COLORS[ci%CIRCUIT_COLORS.length];
+  const run={id:nextId(),panelIds:[...panelIds],circuitIdx:ci,pattern:state.pattern,bias:state.bias,color};
+  runs.push(run);
+  panelIds.forEach((pid,idx)=>{
+    const p=wall.panels.find(p=>p.id===pid);
+    if(p){p[v].runId=run.id;p[v].seq=idx+1;p[v].circuitIdx=ci;}
+  });
+  return run;
+}
+function deleteRun(wall,runId){
+  const v=state.view;
+  wall.panels.forEach(p=>{if(p[v].runId===runId){p[v].runId=null;p[v].seq=null;p[v].circuitIdx=null;}});
+  if(v==='data')wall.dataRuns=wall.dataRuns.filter(r=>r.id!==runId);
+  else wall.powerRuns=wall.powerRuns.filter(r=>r.id!==runId);
+  if(state.selectedRunId===runId)state.selectedRunId=null;
+}
+function autoGenerate(wall,replaceAll){
+  const v=state.view; pushHistory();
+  if(replaceAll){
+    if(v==='data')wall.dataRuns=[];else wall.powerRuns=[];
+    wall.panels.forEach(p=>{p[v].runId=null;p[v].seq=null;p[v].circuitIdx=null;});
+  }
+  const unassigned=wall.panels.filter(p=>p[v].runId===null);
+  if(!unassigned.length){renderAll();return;}
+  const sorted=sortPanels(wall,unassigned,state.bias,state.pattern);
+  const pa=pAmps(wall.type,wall),limit=maxAmps(wall);
+  let batch=[],batchA=0;
+  sorted.forEach(p=>{
+    if(batchA+pa>limit&&batch.length){createRun(wall,batch.map(p=>p.id));batch=[];batchA=0;}
+    batch.push(p);batchA+=pa;
+  });
+  if(batch.length)createRun(wall,batch.map(p=>p.id));
+  renderAll(); saveLocal();
+}
+function sortPanels(wall,panels,bias,pattern){
+  const startTop=bias==='tl'||bias==='tr', startLeft=bias==='tl'||bias==='bl';
+  const result=[];
+  if(pattern==='rows'){
+    const rows=[...new Set(panels.map(p=>p.row))].sort((a,b)=>startTop?a-b:b-a);
+    rows.forEach((r,ri)=>{
+      let rp=panels.filter(p=>p.row===r).sort((a,b)=>a.col-b.col);
+      if(startLeft?(ri%2===1):(ri%2===0))rp=rp.reverse();
+      result.push(...rp);
+    });
+  } else {
+    const cols=[...new Set(panels.map(p=>p.col))].sort((a,b)=>startLeft?a-b:b-a);
+    cols.forEach((c,ci)=>{
+      let cp=panels.filter(p=>p.col===c).sort((a,b)=>a.row-b.row);
+      if(startTop?(ci%2===1):(ci%2===0))cp=cp.reverse();
+      result.push(...cp);
+    });
+  }
+  return result;
+}
+function reorderSelectedRun(){
+  const wall=getActive(); if(!wall||!state.selectedRunId)return;
+  const v=state.view;
+  const run=wallRuns(wall).find(r=>r.id===state.selectedRunId); if(!run)return;
+  pushHistory();
+  const panels=run.panelIds.map(id=>wall.panels.find(p=>p.id===id)).filter(Boolean);
+  const sorted=sortPanels(wall,panels,state.bias,state.pattern);
+  run.panelIds=sorted.map(p=>p.id);
+  run.pattern=state.pattern; run.bias=state.bias;
+  run.panelIds.forEach((id,i)=>{
+    const p=wall.panels.find(p=>p.id===id);
+    if(p)p[v].seq=i+1;
+  });
+  renderAll(); saveLocal();
+}
+
+// ═══════════════════════════════════════════
+// TOPBAR STATE
+// ═══════════════════════════════════════════
+function setTopbarExpanded(expanded){
+  // Topbar is always visible — no-op, kept for compatibility
+}
+function syncTopbarToRun(run){
+  // Swatches
+  document.querySelectorAll('#tb-swatches .swatch').forEach(s=>{
+    s.classList.toggle('active',s.dataset.color===(run?.color||CIRCUIT_COLORS[run?.circuitIdx%8||0]));
+  });
+  // Bias
+  const bias=run?.bias||state.bias;
+  document.querySelectorAll('#tb-sc .sc-btn').forEach(b=>b.classList.toggle('active',b.dataset.bias===bias));
+  state.bias=bias;
+  // Pattern
+  const pat=run?.pattern||state.pattern;
+  document.querySelectorAll('#tb-pat .pat-btn').forEach(b=>b.classList.toggle('active',b.dataset.pat===pat));
+  state.pattern=pat;
+}
+
+// ═══════════════════════════════════════════
+// RENDER — SIDEBAR
+// ═══════════════════════════════════════════
+function renderSidebar(){
+  const container=document.getElementById('sb-walls');
+  const addWrap=document.getElementById('sb-add-wrap');
+  container.querySelectorAll('.wall-item').forEach(el=>el.remove());
+  document.getElementById('sb-sub').textContent=
+    state.walls.length===0?'No walls yet':`${state.walls.length} wall${state.walls.length>1?'s':''}`;
+  state.walls.forEach(wall=>{
+    const runs=wallRunsFor(wall,state.view);
+    const color=runs.length>0?(runs[0].color||CIRCUIT_COLORS[runs[0].circuitIdx%8]):CIRCUIT_COLORS[0];
+    const complete=wall.panels.every(p=>p[state.view].runId!==null);
+    const item=document.createElement('div');
+    item.className='wall-item'+(wall.id===state.activeWallId?' active':'');
+    item.innerHTML=`<div class="wall-dot" style="background:${color};"></div>
+      <div class="wall-name" title="${wall.name}">${wall.name}</div>
+      ${complete?'<div class="wall-check">✓</div>':''}
+      <div class="wall-edit-btn" title="Edit">✎</div>`;
+    item.querySelector('.wall-edit-btn').addEventListener('click',e=>{e.stopPropagation();openEditModal(wall.id);});
+    item.addEventListener('click',()=>{state.activeWallId=wall.id;state.selectedRunId=null;renderAll();});
+    container.insertBefore(item,addWrap);
+  });
+}
+
+// ═══════════════════════════════════════════
+// RENDER — CANVAS
+// ═══════════════════════════════════════════
+function renderCanvas(){
+  const wrap=document.getElementById('canvas-inner');
+  const wall=getActive();
+  if(!wall){
+    wrap.innerHTML=`<div class="no-wall"><div class="no-wall-icon">▦</div>
+      <div class="no-wall-text">No walls yet</div>
+      <div class="no-wall-sub">Click "+ new wall" in the sidebar</div></div>`;
+    renderPowerFooter(); return;
+  }
+  const pt=PANEL_TYPES[wall.type];
+  const isVert=wall.vertical||pt.square;
+  const cellW=CELL_PX;
+  const cellH=pt.square?CELL_PX:(isVert?Math.round(CELL_PX*1.8):Math.round(CELL_PX*0.55));
+  const gap=1;
+  const totalW=wall.cols*cellW+(wall.cols-1)*gap;
+  const totalH=wall.rows*cellH+(wall.rows-1)*gap;
+  const runs=wallRuns(wall);
+  const firstColor=runs.length>0?(runs[0].color||CIRCUIT_COLORS[runs[0].circuitIdx%8]):CIRCUIT_COLORS[0];
+  const complete=isComplete(wall);
+
+  wrap.innerHTML=`<div class="wall-frame">
+    <div class="wall-header">
+      <div class="wall-dot" style="width:10px;height:10px;border-radius:50%;background:${firstColor};"></div>
+      <div class="wall-title">${wall.name}</div>
+      <div class="wall-subtitle">${pt.label} · ${wall.panels.length} panels${wall.customShape?' · custom shape':''}</div>
+      ${complete?'<div class="wall-complete-badge">✓ All panels assigned</div>':''}
+    </div>
+    <div class="grid-container" id="grid-container">
+      <div class="panel-grid" id="panel-grid" style="grid-template-columns:repeat(${wall.cols},${cellW}px);width:${totalW}px;"></div>
+      <svg class="svg-overlay" id="svg-overlay" style="width:${totalW}px;height:${totalH}px;" viewBox="0 0 ${totalW} ${totalH}" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
+  </div>`;
+
+  const grid=document.getElementById('panel-grid');
+  const v=state.view;
+  // For custom shapes, build a position lookup
+  const panelMap={};
+  wall.panels.forEach(p=>panelMap[p.col+','+p.row]=p);
+  for(let r=0;r<wall.rows;r++){
+    for(let c=0;c<wall.cols;c++){
+      const p=panelMap[c+','+r];
+      if(!p){
+        // Empty spacer for custom shapes
+        if(wall.customShape){
+          const spacer=document.createElement('div');
+          spacer.className='panel-cell empty-spacer';
+          spacer.style.width=cellW+'px';spacer.style.height=cellH+'px';
+          grid.appendChild(spacer);
+        }
+        continue;
+      }
+      const slot=p[v];
+      const isAssigned=slot.runId!==null;
+      const run=isAssigned?runs.find(r=>r.id===slot.runId):null;
+      const isSelected=run&&run.id===state.selectedRunId;
+      const bgColor=isAssigned&&run?(CIRCUIT_LIGHT[run.circuitIdx%8]):null;
+      const cell=document.createElement('div');
+      cell.className='panel-cell'+(isAssigned?' assigned':' unassigned')+(isSelected?' run-selected':'');
+      cell.style.width=cellW+'px'; cell.style.height=cellH+'px';
+      if(bgColor)cell.style.background=bgColor;
+      if(run?.color)cell.style.background=run.color+'22';
+      cell.dataset.col=p.col; cell.dataset.row=p.row;
+      if(isAssigned)cell.innerHTML=`<div class="panel-label">${slot.seq}</div>`;
+      grid.appendChild(cell);
+    }
+  }
+
+  renderRunLines(wall,cellW,cellH,gap);
+  initDrag(wall,cellW,cellH,gap);
+  renderPowerFooter();
+}
+
+// ═══════════════════════════════════════════
+// RENDER — RUN LINES
+// ═══════════════════════════════════════════
+function renderRunLines(wall,cellW,cellH,gap){
+  const svg=document.getElementById('svg-overlay'); if(!svg)return;
+  svg.innerHTML='';
+  const defs=document.createElementNS('http://www.w3.org/2000/svg','defs');
+  svg.appendChild(defs);
+  const cxFn=col=>col*(cellW+gap)+cellW/2;
+  const cyFn=row=>row*(cellH+gap)+cellH/2;
+  const OFFSET=7;
+
+  function getPts(panels){
+    const rowOrder=[...new Set(panels.map(p=>p.row))];
+    return panels.map(p=>{
+      const ri=rowOrder.indexOf(p.row);
+      const sameRow=panels.filter(pp=>pp.row===p.row).length>1;
+      const oy=sameRow?(ri%2===0?-OFFSET/2:OFFSET/2):0;
+      return{x:cxFn(p.col),y:cyFn(p.row)+oy};
+    });
+  }
+
+  function makeMarker(id,color){
+    const m=document.createElementNS('http://www.w3.org/2000/svg','marker');
+    m.setAttribute('id',id);m.setAttribute('markerWidth','10');m.setAttribute('markerHeight','10');
+    m.setAttribute('refX','8');m.setAttribute('refY','5');m.setAttribute('orient','auto');
+    const poly=document.createElementNS('http://www.w3.org/2000/svg','polygon');
+    poly.setAttribute('points','0 0,10 5,0 10');poly.setAttribute('fill',color);
+    m.appendChild(poly);defs.appendChild(m);
+  }
+
+  function drawRun(run,panels,color,isSelected){
+    if(!panels.length)return;
+    if(panels.length===1){
+      const dot=document.createElementNS('http://www.w3.org/2000/svg','circle');
+      dot.setAttribute('cx',cxFn(panels[0].col));dot.setAttribute('cy',cyFn(panels[0].row));
+      dot.setAttribute('r',isSelected?'6':'5');dot.setAttribute('fill',color);
+      svg.appendChild(dot);return;
+    }
+    const mid='arr-'+run.id;
+    makeMarker(mid,color);
+    const pts=getPts(panels);
+    const runSet=new Set(run.panelIds instanceof Set?[...run.panelIds]:run.panelIds);
+    for(let i=0;i<pts.length-1;i++){
+      const isCross=!runSet.has(panels[i].id)||!runSet.has(panels[i+1].id);
+      let x1=pts[i].x,y1=pts[i].y,x2=pts[i+1].x,y2=pts[i+1].y;
+      if(isCross){const dx=x2-x1,dy=y2-y1,len=Math.sqrt(dx*dx+dy*dy)||1;x1+=(-dy/len)*5;y1+=(dx/len)*5;x2+=(-dy/len)*5;y2+=(dx/len)*5;}
+      const seg=document.createElementNS('http://www.w3.org/2000/svg','line');
+      seg.setAttribute('x1',x1);seg.setAttribute('y1',y1);seg.setAttribute('x2',x2);seg.setAttribute('y2',y2);
+      seg.setAttribute('stroke',color);seg.setAttribute('stroke-width',isSelected?'3':'2.5');
+      seg.setAttribute('stroke-linecap','round');
+      if(isCross)seg.setAttribute('stroke-dasharray','5,4');
+      svg.appendChild(seg);
+    }
+    // Arrowhead line
+    const al=document.createElementNS('http://www.w3.org/2000/svg','line');
+    al.setAttribute('x1',pts[pts.length-2].x);al.setAttribute('y1',pts[pts.length-2].y);
+    al.setAttribute('x2',pts[pts.length-1].x);al.setAttribute('y2',pts[pts.length-1].y);
+    al.setAttribute('stroke',color);al.setAttribute('stroke-width',isSelected?'3':'2.5');
+    al.setAttribute('stroke-linecap','round');al.setAttribute('marker-end',`url(#${mid})`);
+    svg.appendChild(al);
+    // Start dot
+    const dot=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    dot.setAttribute('cx',pts[0].x);dot.setAttribute('cy',pts[0].y);
+    dot.setAttribute('r',isSelected?'5.5':'4.5');dot.setAttribute('fill',color);
+    svg.appendChild(dot);
+    // Hit target for clicking to select
+    const hit=document.createElementNS('http://www.w3.org/2000/svg','polyline');
+    hit.setAttribute('points',pts.map(pt=>`${pt.x},${pt.y}`).join(' '));
+    hit.setAttribute('stroke','transparent');hit.setAttribute('stroke-width','14');
+    hit.setAttribute('fill','none');hit.style.cursor='pointer';
+    hit.addEventListener('click',()=>{state.selectedRunId=run.id;renderCanvas();updateTopbarForRun();});
+    svg.appendChild(hit);
+
+    // Draggable hit zone on arrowhead endpoint — drag from here to extend run
+    const endPt=pts[pts.length-1];
+    const extendHit=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    extendHit.setAttribute('cx',endPt.x);extendHit.setAttribute('cy',endPt.y);
+    extendHit.setAttribute('r','10');
+    extendHit.setAttribute('fill','transparent');
+    extendHit.setAttribute('stroke',isSelected?color:'transparent');
+    extendHit.setAttribute('stroke-width','1.5');
+    extendHit.setAttribute('stroke-dasharray','3,2');
+    extendHit.style.cursor='crosshair';
+    extendHit.classList.add('run-extend-hit');
+    extendHit.dataset.runId=run.id;
+    extendHit.style.pointerEvents='all';
+    svg.appendChild(extendHit);
+  }
+
+  if(state.view==='data'){
+    const nonSel=wall.dataRuns.filter(r=>r.id!==state.selectedRunId);
+    const selRun=wall.dataRuns.find(r=>r.id===state.selectedRunId);
+    [...nonSel,...(selRun?[selRun]:[])].forEach(run=>{
+      const color=run.color||CIRCUIT_COLORS[run.circuitIdx%8];
+      const panels=run.panelIds.map(id=>wall.panels.find(p=>p.id===id)).filter(Boolean);
+      drawRun(run,panels,color,run.id===state.selectedRunId);
+    });
+  } else {
+    const circMap={};
+    wall.powerRuns.forEach(run=>{
+      const ci=run.circuitIdx;
+      if(!circMap[ci])circMap[ci]=[];
+      run.panelIds.forEach(id=>{const p=wall.panels.find(pp=>pp.id===id);if(p)circMap[ci].push(p);});
+    });
+    Object.entries(circMap).forEach(([ci,panels])=>{
+      const run=wall.powerRuns.find(r=>r.circuitIdx===+ci);
+      const color=run?.color||CIRCUIT_COLORS[+ci%8];
+      const synthRun={id:'pwr-'+ci,panelIds:new Set(panels.map(p=>p.id)),circuitIdx:+ci,color};
+      drawRun(synthRun,panels,color,false);
+    });
+  }
+}
+
+// ═══════════════════════════════════════════
+// TOPBAR UPDATE FOR SELECTED RUN
+// ═══════════════════════════════════════════
+function updateTopbarForRun(){
+  const wall=getActive();
+  if(!wall||!state.selectedRunId){
+    // Collapsed, no run
+    document.getElementById('run-pill').textContent='No run selected';
+    document.getElementById('run-pill').className='run-pill empty';
+    document.getElementById('panel-count-lbl').textContent='';
+    setTopbarExpanded(false);
+    return;
+  }
+  const runs=wallRuns(wall);
+  const run=runs.find(r=>r.id===state.selectedRunId);
+  if(!run){
+    document.getElementById('run-pill').textContent='No run selected';
+    document.getElementById('run-pill').className='run-pill empty';
+    document.getElementById('panel-count-lbl').textContent='';
+    setTopbarExpanded(false);
+    return;
+  }
+  const idx=runs.indexOf(run)+1;
+  document.getElementById('run-pill').textContent=`Run ${idx} · C${run.circuitIdx+1}`;
+  document.getElementById('run-pill').className='run-pill';
+  document.getElementById('panel-count-lbl').textContent=`${run.panelIds.length} panels`;
+  setTopbarExpanded(true);
+  syncTopbarToRun(run);
+}
+
+// ═══════════════════════════════════════════
+// RENDER — POWER FOOTER
+// ═══════════════════════════════════════════
+function renderPowerFooter(){
+  const wall=getActive();
+  const container=document.getElementById('pf-circuits');
+  container.innerHTML='';
+  if(!wall)return;
+  const pa=pAmps(wall.type,wall),limit=maxAmps(wall);
+  const circMap={};
+  wall.panels.forEach(p=>{
+    if(p.power.circuitIdx===null)return;
+    circMap[p.power.circuitIdx]=(circMap[p.power.circuitIdx]||0)+pa;
+  });
+  if(Object.keys(circMap).length===0){
+    container.innerHTML='<span style="font-size:10px;color:var(--text3);">No power circuits yet</span>';return;
+  }
+  Object.entries(circMap).sort((a,b)=>+a[0]-+b[0]).forEach(([ci,amps])=>{
+    const run=wall.powerRuns.find(r=>r.circuitIdx===+ci);
+    const color=run?.color||CIRCUIT_COLORS[+ci%8];
+    const pct=Math.min(100,(amps/limit)*100);
+    const over=amps>limit;
+    const div=document.createElement('div');
+    div.className='pf-circuit';
+    div.innerHTML=`<div class="pf-dot" style="background:${color};"></div>
+      <div class="pf-bar-wrap"><div class="pf-bar-fill" style="width:${pct.toFixed(0)}%;background:${over?'var(--red)':color};"></div></div>
+      <div class="pf-val${over?' over':''}">${amps.toFixed(1)} / ${limit}A</div>`;
+    container.appendChild(div);
+  });
+}
+
+// ═══════════════════════════════════════════
+// RENDER — ALL
+// ═══════════════════════════════════════════
+function renderAll(){renderSidebar();renderCanvas();updateTopbarForRun();updatePowerOnlyControls();}
+
+// ═══════════════════════════════════════════
+// DRAG SELECT
+// ═══════════════════════════════════════════
+function initDrag(wall){
+  const grid=document.getElementById('panel-grid'); if(!grid)return;
+  let isDown=false,startCell=null;
+  const v=state.view;
+  const runs=()=>wallRuns(wall);
+  const key=p=>p.col+','+p.row;
+  const fromEl=el=>{
+    const c=el.dataset.col,r=el.dataset.row;
+    if(c===undefined)return null;
+    return wall.panels.find(p=>p.col===+c&&p.row===+r);
+  };
+
+  let extendRunId=null; // set when dragging from a run's endpoint
+
+  grid.addEventListener('mousedown',e=>{
+    const cell=e.target.closest('.panel-cell'); if(!cell)return;
+    e.preventDefault();
+    const p=fromEl(cell); if(!p)return;
+    const selRun=state.selectedRunId?runs().find(r=>r.id===state.selectedRunId):null;
+
+    // Click panel in selected run → remove it
+    if(selRun&&p[v].runId===state.selectedRunId){
+      if(selRun.panelIds.length>1){
+        pushHistory();
+        selRun.panelIds=selRun.panelIds.filter(id=>id!==p.id);
+        p[v].runId=null;p[v].seq=null;p[v].circuitIdx=null;
+        selRun.panelIds.forEach((id,i)=>{const pp=wall.panels.find(pp=>pp.id===id);if(pp){pp[v].seq=i+1;pp[v].circuitIdx=selRun.circuitIdx;}});
+        renderAll();saveLocal();
+      } else {
+        pushHistory();deleteRun(wall,selRun.id);renderAll();saveLocal();
+      }
+      return;
+    }
+    // Click unassigned panel while run selected → add to run
+    if(selRun&&!p[v].runId){
+      pushHistory();
+      selRun.panelIds.push(p.id);
+      p[v].runId=selRun.id;p[v].seq=selRun.panelIds.length;p[v].circuitIdx=selRun.circuitIdx;
+      renderAll();saveLocal();return;
+    }
+    // Click different run → select it
+    if(p[v].runId&&p[v].runId!==state.selectedRunId){
+      state.selectedRunId=p[v].runId;renderCanvas();updateTopbarForRun();return;
+    }
+    // No run selected + click assigned panel → select it
+    if(!selRun&&p[v].runId){
+      state.selectedRunId=p[v].runId;renderCanvas();updateTopbarForRun();return;
+    }
+    // Start drag
+    extendRunId=null;
+    isDown=true;startCell=p;
+    dragState.active=true;dragState.cells=new Set([key(p)]);
+    cell.classList.add('drag-hover');
+  });
+
+  // Allow dragging from SVG arrowhead to extend a run
+  document.getElementById('grid-container').addEventListener('mousedown',e=>{
+    const hit=e.target.closest('.run-extend-hit');
+    if(!hit)return;
+    e.preventDefault();
+    extendRunId=hit.dataset.runId;
+    // Find the last panel of this run to use as startCell anchor
+    const run=runs().find(r=>r.id===extendRunId); if(!run)return;
+    const lastPanelId=run.panelIds[run.panelIds.length-1];
+    startCell=wall.panels.find(p=>p.id===lastPanelId); if(!startCell)return;
+    isDown=true;
+    dragState.active=true;dragState.cells=new Set();
+    state.selectedRunId=extendRunId;
+    renderCanvas();updateTopbarForRun();
+  });
+
+  document.addEventListener('mousemove',e=>{
+    if(!isDown)return;
+    const el=document.elementFromPoint(e.clientX,e.clientY);
+    const cell=el?.closest?.('.panel-cell'); if(!cell)return;
+    const p=fromEl(cell); if(!p)return;
+    const dc=p.col-startCell.col,dr=p.row-startCell.row;
+    dragState.cells=new Set();
+    if(e.shiftKey&&Math.abs(dc)===Math.abs(dr)&&dc!==0){
+      for(let i=0;i<=Math.abs(dc);i++){
+        const pp=wall.panels.find(pp=>pp.col===startCell.col+Math.sign(dc)*i&&pp.row===startCell.row+Math.sign(dr)*i);
+        if(pp)dragState.cells.add(key(pp));
+      }
+    } else if(dc===0||dr===0){
+      const steps=Math.max(Math.abs(dc),Math.abs(dr));
+      for(let i=0;i<=steps;i++){
+        const fc=startCell.col+(dc===0?0:Math.sign(dc)*i);
+        const fr=startCell.row+(dr===0?0:Math.sign(dr)*i);
+        const pp=wall.panels.find(pp=>pp.col===fc&&pp.row===fr);
+        if(pp)dragState.cells.add(key(pp));
+      }
+    } else {
+      const minC=Math.min(startCell.col,p.col),maxC=Math.max(startCell.col,p.col);
+      const minR=Math.min(startCell.row,p.row),maxR=Math.max(startCell.row,p.row);
+      wall.panels.forEach(pp=>{if(pp.col>=minC&&pp.col<=maxC&&pp.row>=minR&&pp.row<=maxR)dragState.cells.add(key(pp));});
+    }
+    document.querySelectorAll('.panel-cell').forEach(el=>{
+      const pp=fromEl(el); if(!pp)return;
+      const inSel=dragState.cells.has(key(pp));
+      // In extend mode, only highlight unassigned panels
+      const highlight=inSel&&(extendRunId?pp[v].runId===null:true);
+      el.classList.toggle('drag-hover',highlight);
+    });
+  });
+
+  document.addEventListener('mouseup',e=>{
+    if(!isDown)return;
+    isDown=false;dragState.active=false;
+    if(dragState.cells.size===0){extendRunId=null;return;}
+    const selected=wall.panels.filter(p=>dragState.cells.has(key(p)));
+    if(!selected.length){dragState.cells=new Set();extendRunId=null;return;}
+
+    if(extendRunId){
+      // Extend mode — append only unassigned panels in selection order to existing run
+      const run=runs().find(r=>r.id===extendRunId);
+      if(run){
+        const unassigned=selected.filter(p=>p[v].runId===null);
+        if(unassigned.length){
+          pushHistory();
+          // Sort unassigned panels continuing from the last panel's direction
+          const lastPanel=wall.panels.find(p=>p.id===run.panelIds[run.panelIds.length-1]);
+          const sorted=sortPanelsFromStart(wall,unassigned,lastPanel||startCell,state.pattern);
+          sorted.forEach(p=>{
+            run.panelIds.push(p.id);
+            p[v].runId=run.id;
+            p[v].seq=run.panelIds.length;
+            p[v].circuitIdx=run.circuitIdx;
+          });
+          state.selectedRunId=run.id;
+          renderAll();saveLocal();
+        }
+      }
+      extendRunId=null;
+      dragState.cells=new Set();
+      return;
+    }
+
+    // Normal drag — create new run
+    const sorted=sortPanelsFromStart(wall,selected,startCell,state.pattern);
+    pushHistory();
+    selected.forEach(p=>{
+      if(p[v].runId){
+        const run=runs().find(r=>r.id===p[v].runId);
+        if(run){
+          run.panelIds=run.panelIds.filter(id=>id!==p.id);
+          p[v].runId=null;p[v].seq=null;p[v].circuitIdx=null;
+          if(run.panelIds.length===0){
+            if(v==='data')wall.dataRuns=wall.dataRuns.filter(r=>r.id!==run.id);
+            else wall.powerRuns=wall.powerRuns.filter(r=>r.id!==run.id);
+          } else {run.panelIds.forEach((pid,i)=>{const pp=wall.panels.find(pp=>pp.id===pid);if(pp)pp[v].seq=i+1;});}
+        }
+      }
+    });
+    createRun(wall,sorted.map(p=>p.id));
+    state.selectedRunId=null;
+    dragState.cells=new Set();
+    extendRunId=null;
+    renderAll();saveLocal();
+  });
+
+  // Deselect on empty canvas click
+  document.getElementById('canvas-wrap').addEventListener('mousedown',e=>{
+    if(!e.target.closest('.panel-cell')&&!e.target.closest('.panel-grid')&&!e.target.closest('#svg-overlay')){
+      state.selectedRunId=null;renderCanvas();updateTopbarForRun();
+    }
+  });
+}
+
+// Sort panels starting from the drag start cell
+function sortPanelsFromStart(wall,panels,startCell,pattern){
+  // Find which corner startCell is closest to
+  const cols=panels.map(p=>p.col),rows=panels.map(p=>p.row);
+  const minC=Math.min(...cols),maxC=Math.max(...cols);
+  const minR=Math.min(...rows),maxR=Math.max(...rows);
+  const startLeft=startCell.col<=minC+(maxC-minC)/2;
+  const startTop=startCell.row<=minR+(maxR-minR)/2;
+  const bias=(startTop?'t':'b')+(startLeft?'l':'r');
+  return sortPanels(wall,panels,bias,pattern);
+}
+
+// ═══════════════════════════════════════════
+// TOPBAR SWATCHES BUILD
+// ═══════════════════════════════════════════
+function buildSwatches(){
+  const container=document.getElementById('tb-swatches');
+  container.innerHTML='';
+  SWATCH_COLORS.forEach(color=>{
+    const s=document.createElement('div');
+    s.className='swatch';s.style.background=color;s.dataset.color=color;
+    s.title=color;
+    s.addEventListener('click',()=>{
+      document.querySelectorAll('#tb-swatches .swatch').forEach(x=>x.classList.remove('active'));
+      s.classList.add('active');
+      // Apply color to selected run
+      const wall=getActive(); if(!wall||!state.selectedRunId)return;
+      const run=wallRuns(wall).find(r=>r.id===state.selectedRunId); if(!run)return;
+      pushHistory();run.color=color;renderCanvas();renderPowerFooter();saveLocal();
+    });
+    container.appendChild(s);
+  });
+}
+
+// ═══════════════════════════════════════════
+// TOPBAR EVENT LISTENERS
+// ═══════════════════════════════════════════
+document.getElementById('view-seg').addEventListener('click',e=>{
+  const btn=e.target.closest('.view-btn'); if(!btn)return;
+  state.view=btn.dataset.view;
+  document.querySelectorAll('.view-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===state.view));
+  state.selectedRunId=null;
+  updatePowerOnlyControls();
+  renderAll();
+});
+
+function updatePowerOnlyControls(){
+  const isPower=state.view==='power';
+  const wall=getActive();
+  const voltage=wall?.voltage||208;
+  const circuitSize=wall?.circuitSize||20;
+  // Show/hide voltage group
+  document.getElementById('tb-voltage-group').classList.toggle('visible',isPower);
+  // Show circuit group only when power view AND 120V
+  document.getElementById('tb-circuit-group').classList.toggle('visible',isPower&&voltage===120);
+  // Sync voltage buttons
+  document.querySelectorAll('#tb-voltage .seg-btn').forEach(b=>b.classList.toggle('active',+b.dataset.v===voltage));
+  // Sync circuit buttons
+  document.querySelectorAll('#tb-circuit .seg-btn').forEach(b=>b.classList.toggle('active',+b.dataset.a===circuitSize));
+}
+
+document.getElementById('tb-voltage').addEventListener('click',e=>{
+  const btn=e.target.closest('.seg-btn'); if(!btn)return;
+  const wall=getActive(); if(!wall)return;
+  wall.voltage=+btn.dataset.v;
+  // At 208V lock to 20A
+  if(wall.voltage===208)wall.circuitSize=20;
+  updatePowerOnlyControls();
+  renderPowerFooter();
+  saveLocal();
+});
+
+document.getElementById('tb-circuit').addEventListener('click',e=>{
+  const btn=e.target.closest('.seg-btn'); if(!btn)return;
+  const wall=getActive(); if(!wall)return;
+  wall.circuitSize=+btn.dataset.a;
+  updatePowerOnlyControls();
+  renderPowerFooter();
+  saveLocal();
+});
+document.getElementById('tb-sc').addEventListener('click',e=>{
+  const btn=e.target.closest('.sc-btn'); if(!btn)return;
+  state.bias=btn.dataset.bias;
+  document.querySelectorAll('#tb-sc .sc-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if(state.selectedRunId)reorderSelectedRun();
+});
+document.getElementById('tb-pat').addEventListener('click',e=>{
+  const btn=e.target.closest('.pat-btn'); if(!btn)return;
+  state.pattern=btn.dataset.pat;
+  document.querySelectorAll('#tb-pat .pat-btn').forEach(b=>b.classList.toggle('active',b.dataset.pat===state.pattern));
+  if(state.selectedRunId)reorderSelectedRun();
+});
+document.getElementById('delete-run-btn').addEventListener('click',()=>{
+  const wall=getActive(); if(!wall||!state.selectedRunId)return;
+  pushHistory();deleteRun(wall,state.selectedRunId);renderAll();saveLocal();
+});
+// Auto-generate infrastructure (hidden)
+document.getElementById('prompt-replace').addEventListener('click',()=>{
+  document.getElementById('prompt-overlay').classList.add('hidden');
+  const wall=getActive();if(wall)autoGenerate(wall,true);
+});
+document.getElementById('prompt-fill').addEventListener('click',()=>{
+  document.getElementById('prompt-overlay').classList.add('hidden');
+  const wall=getActive();if(wall)autoGenerate(wall,false);
+});
+document.getElementById('prompt-cancel').addEventListener('click',()=>document.getElementById('prompt-overlay').classList.add('hidden'));
+document.getElementById('prompt-overlay').addEventListener('click',e=>{if(e.target===document.getElementById('prompt-overlay'))document.getElementById('prompt-overlay').classList.add('hidden');});
+
+// ═══════════════════════════════════════════
+// NEW WALL MODAL
+// ═══════════════════════════════════════════
+function openNewWallModal(){
+  mState={cols:4,rows:3,type:'gmars',vertical:true};
+  document.getElementById('wall-name-input').value=`Wall ${state.walls.length+1}`;
+  document.querySelectorAll('.type-card').forEach(c=>c.classList.toggle('active',c.dataset.type==='gmars'));
+  document.getElementById('orient-v').classList.add('disabled','active');
+  document.getElementById('orient-h').classList.add('disabled');
+  document.getElementById('orient-h').classList.remove('active');
+  buildModalGrid();updateModalPreview();
+  document.getElementById('modal-overlay').classList.remove('hidden');
+  document.getElementById('wall-name-input').focus();
+  document.getElementById('wall-name-input').select();
+}
+function closeModal(){document.getElementById('modal-overlay').classList.add('hidden');}
+
+function buildModalGrid(){
+  const wrap=document.getElementById('modal-gp');
+  wrap.innerHTML='';
+  const pt=PANEL_TYPES[mState.type];
+  const isVert=mState.vertical||pt.square;
+  const cw=pt.square?13:(isVert?9:18);
+  const ch=pt.square?13:(isVert?18:9);
+  const labelRow=document.createElement('div');
+  labelRow.className='gp-row-labels';
+  for(let c=1;c<=GP_COLS;c++){const l=document.createElement('div');l.className='gp-col-lbl';l.style.width=(cw+1)+'px';l.textContent=c;labelRow.appendChild(l);}
+  wrap.appendChild(labelRow);
+  for(let r=1;r<=GP_ROWS;r++){
+    const row=document.createElement('div');row.className='gp-row';
+    const rl=document.createElement('div');rl.className='gp-row-lbl';rl.textContent=r;row.appendChild(rl);
+    for(let c=1;c<=GP_COLS;c++){
+      const cell=document.createElement('div');
+      cell.className='gp-cell'+(c<=mState.cols&&r<=mState.rows?' filled':'');
+      cell.style.width=cw+'px';cell.style.height=ch+'px';
+      cell.dataset.c=c;cell.dataset.r=r;
+      cell.addEventListener('mouseenter',()=>hoverGP(c,r,wrap));
+      cell.addEventListener('click',()=>{mState.cols=c;mState.rows=r;buildModalGrid();updateModalPreview();});
+      row.appendChild(cell);
+    }
+    wrap.appendChild(row);
+  }
+  wrap.addEventListener('mouseleave',()=>{
+    wrap.querySelectorAll('.gp-cell').forEach(cell=>{
+      cell.className='gp-cell'+(+cell.dataset.c<=mState.cols&&+cell.dataset.r<=mState.rows?' filled':'');
+    });
+  });
+}
+function hoverGP(c,r,wrap){
+  wrap.querySelectorAll('.gp-cell').forEach(cell=>{
+    const cc=+cell.dataset.c,cr=+cell.dataset.r;
+    cell.className='gp-cell'+(cc<=c&&cr<=r?' hovered':'');
+  });
+}
+function updateModalPreview(){
+  const pg=document.getElementById('modal-preview');
+  const pt=PANEL_TYPES[mState.type];
+  const isVert=mState.vertical||pt.square;
+  const rw=pt.square?1:(isVert?0.6:1.8),rh=pt.square?1:(isVert?1.8:0.6);
+  const scale=Math.min(120/(mState.cols*rw*14),80/(mState.rows*rh*14),1);
+  const cw=Math.max(4,Math.round(rw*14*scale)),ch=Math.max(4,Math.round(rh*14*scale));
+  pg.style.gridTemplateColumns=`repeat(${mState.cols},${cw}px)`;
+  pg.innerHTML='';
+  for(let i=0;i<mState.cols*mState.rows;i++){const c=document.createElement('div');c.className='preview-cell';c.style.width=cw+'px';c.style.height=ch+'px';pg.appendChild(c);}
+  document.getElementById('modal-readout').textContent=`${mState.cols} × ${mState.rows} — ${mState.cols*mState.rows} panels`;
+  document.getElementById('modal-panel-info').textContent=`${pt.label} · ${pt.sub}${!pt.square?(isVert?' · vertical':' · horizontal'):''}`;
+}
+document.getElementById('type-row').addEventListener('click',e=>{
+  const card=e.target.closest('.type-card'); if(!card)return;
+  mState.type=card.dataset.type;
+  document.querySelectorAll('.type-card').forEach(c=>c.classList.remove('active'));
+  card.classList.add('active');
+  const sq=PANEL_TYPES[mState.type].square;
+  document.getElementById('orient-v').classList.toggle('disabled',sq);
+  document.getElementById('orient-h').classList.toggle('disabled',sq);
+  if(sq){mState.vertical=true;document.getElementById('orient-v').classList.add('active');document.getElementById('orient-h').classList.remove('active');}
+  buildModalGrid();updateModalPreview();
+});
+document.getElementById('orient-v').addEventListener('click',()=>{mState.vertical=true;document.getElementById('orient-v').classList.add('active');document.getElementById('orient-h').classList.remove('active');buildModalGrid();updateModalPreview();});
+document.getElementById('orient-h').addEventListener('click',()=>{mState.vertical=false;document.getElementById('orient-h').classList.add('active');document.getElementById('orient-v').classList.remove('active');buildModalGrid();updateModalPreview();});
+document.getElementById('modal-close').addEventListener('click',closeModal);
+document.getElementById('modal-cancel').addEventListener('click',closeModal);
+document.getElementById('modal-overlay').addEventListener('click',e=>{if(e.target===document.getElementById('modal-overlay'))closeModal();});
+document.getElementById('wall-name-input').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('modal-create').click();});
+document.getElementById('modal-create').addEventListener('click',()=>{
+  const name=document.getElementById('wall-name-input').value.trim()||`Wall ${state.walls.length+1}`;
+  closeModal();addWall(name,mState.type,mState.cols,mState.rows,mState.vertical);
+});
+document.getElementById('add-wall-btn').addEventListener('click',openNewWallModal);
+
+// ═══════════════════════════════════════════
+// EDIT WALL MODAL
+// ═══════════════════════════════════════════
+let editingWallId=null;
+function openEditModal(wallId){
+  editingWallId=wallId;
+  const wall=getWall(wallId);
+  document.getElementById('edit-modal-title').textContent=`Edit "${wall.name}"`;
+  document.getElementById('rename-input').value=wall.name;
+  document.getElementById('edit-overlay').classList.remove('hidden');
+  document.getElementById('rename-input').focus();
+  document.getElementById('rename-input').select();
+}
+function closeEditModal(){document.getElementById('edit-overlay').classList.add('hidden');editingWallId=null;}
+document.getElementById('edit-cancel').addEventListener('click',closeEditModal);
+document.getElementById('edit-overlay').addEventListener('click',e=>{if(e.target===document.getElementById('edit-overlay'))closeEditModal();});
+document.getElementById('rename-save-btn').addEventListener('click',()=>{
+  const name=document.getElementById('rename-input').value.trim();
+  if(name&&editingWallId){renameWall(editingWallId,name);closeEditModal();}
+});
+document.getElementById('rename-input').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('rename-save-btn').click();});
+document.getElementById('delete-wall-btn').addEventListener('click',()=>{
+  if(editingWallId&&confirm(`Delete "${getWall(editingWallId)?.name}"? This cannot be undone.`)){deleteWall(editingWallId);closeEditModal();}
+});
+
+// ═══════════════════════════════════════════
+// CUSTOM SHAPE EDITOR
+// ═══════════════════════════════════════════
+const SE_COLS=12, SE_ROWS=8, SE_CELL=28;
+let seMode='paint'; // 'paint' | 'erase'
+let seCells=new Set(); // 'col,row' keys of ON cells
+let seDragging=false;
+
+function openShapeEditor(){
+  // Pre-fill with current grid size from modal
+  seCells=new Set();
+  for(let r=0;r<mState.rows;r++)for(let c=0;c<mState.cols;c++)seCells.add(c+','+r);
+  seMode='paint';
+  document.getElementById('se-paint').classList.add('active');
+  document.getElementById('se-erase').classList.remove('active');
+  buildShapeGrid();
+  updateShapePreview();
+  document.getElementById('shape-overlay').classList.remove('hidden');
+}
+function closeShapeEditor(){document.getElementById('shape-overlay').classList.add('hidden');}
+
+function buildShapeGrid(){
+  const grid=document.getElementById('se-grid');
+  grid.innerHTML='';
+  const pt=PANEL_TYPES[mState.type];
+  const isVert=mState.vertical||pt.square;
+  const cw=pt.square?SE_CELL:(isVert?Math.round(SE_CELL*0.6):Math.round(SE_CELL*1.6));
+  const ch=pt.square?SE_CELL:(isVert?Math.round(SE_CELL*1.6):Math.round(SE_CELL*0.6));
+  grid.style.gridTemplateColumns=`repeat(${SE_COLS},${cw}px)`;
+  for(let r=0;r<SE_ROWS;r++){
+    for(let c=0;c<SE_COLS;c++){
+      const cell=document.createElement('div');
+      const k=c+','+r;
+      cell.className='se-cell '+(seCells.has(k)?'on':'off');
+      cell.style.width=cw+'px'; cell.style.height=ch+'px';
+      cell.dataset.k=k;
+      cell.addEventListener('mousedown',e=>{e.preventDefault();seDragging=true;toggleSeCell(k,cell);});
+      cell.addEventListener('mouseenter',()=>{if(seDragging)toggleSeCell(k,cell);});
+      grid.appendChild(cell);
+    }
+  }
+}
+function toggleSeCell(k,cell){
+  if(seMode==='paint'){seCells.add(k);cell.className='se-cell on';}
+  else{seCells.delete(k);cell.className='se-cell off';}
+  updateShapePreview();
+}
+document.addEventListener('mouseup',()=>{seDragging=false;});
+
+function updateShapePreview(){
+  const pg=document.getElementById('se-preview');
+  const info=document.getElementById('se-info');
+  const count=document.getElementById('se-count');
+  info.textContent=`${seCells.size} panel${seCells.size!==1?'s':''} selected`;
+  count.textContent=`${seCells.size} panels`;
+  if(seCells.size===0){pg.innerHTML='';return;}
+  const keys=[...seCells].map(k=>k.split(',').map(Number));
+  const maxC=Math.max(...keys.map(([c])=>c));
+  const maxR=Math.max(...keys.map(([,r])=>r));
+  const cols=maxC+1,rows=maxR+1;
+  const scale=Math.min(100/(cols*12),80/(rows*12),1);
+  const cw=Math.max(4,Math.round(12*scale)),ch=Math.max(4,Math.round(12*scale));
+  pg.style.gridTemplateColumns=`repeat(${cols},${cw}px)`;
+  pg.innerHTML='';
+  for(let r=0;r<rows;r++){for(let c=0;c<cols;c++){
+    const d=document.createElement('div');
+    d.style.width=cw+'px';d.style.height=ch+'px';
+    d.className=seCells.has(c+','+r)?'se-preview-cell-on':'se-preview-cell-off';
+    pg.appendChild(d);
+  }}
+}
+
+document.getElementById('se-paint').addEventListener('click',()=>{seMode='paint';document.getElementById('se-paint').classList.add('active');document.getElementById('se-erase').classList.remove('active');});
+document.getElementById('se-erase').addEventListener('click',()=>{seMode='erase';document.getElementById('se-erase').classList.add('active');document.getElementById('se-paint').classList.remove('active');});
+document.getElementById('se-clear').addEventListener('click',()=>{seCells.clear();buildShapeGrid();updateShapePreview();});
+document.getElementById('se-close').addEventListener('click',closeShapeEditor);
+document.getElementById('se-cancel').addEventListener('click',closeShapeEditor);
+document.getElementById('shape-overlay').addEventListener('click',e=>{if(e.target===document.getElementById('shape-overlay'))closeShapeEditor();});
+document.getElementById('se-confirm').addEventListener('click',()=>{
+  if(seCells.size===0)return;
+  closeShapeEditor();
+  closeModal();
+  // Build wall with custom panel set
+  const name=document.getElementById('wall-name-input').value.trim()||`Wall ${state.walls.length+1}`;
+  pushHistory();
+  // Find bounding box
+  const keys=[...seCells].map(k=>k.split(',').map(Number));
+  const maxC=Math.max(...keys.map(([c])=>c));
+  const maxR=Math.max(...keys.map(([,r])=>r));
+  const panels=[];
+  keys.forEach(([c,r])=>panels.push({id:nextId(),col:c,row:r,data:{runId:null,seq:null,circuitIdx:null},power:{runId:null,seq:null,circuitIdx:null}}));
+  const wall={id:nextId(),name,type:mState.type,cols:maxC+1,rows:maxR+1,vertical:mState.vertical,panels,dataRuns:[],powerRuns:[],customShape:true};
+  state.walls.push(wall); state.activeWallId=wall.id; state.selectedRunId=null;
+  renderAll(); saveLocal();
+});
+document.getElementById('modal-custom-shape').addEventListener('click',()=>{
+  closeModal();
+  openShapeEditor();
+});
+
+// ═══════════════════════════════════════════
+// WALL RESIZE
+// ═══════════════════════════════════════════
+let resizeWallId=null, resizeCols=4, resizeRows=3;
+
+function openResizeModal(wallId){
+  resizeWallId=wallId;
+  const wall=getWall(wallId);
+  resizeCols=wall.cols; resizeRows=wall.rows;
+  buildResizeGrid();
+  document.getElementById('resize-overlay').classList.remove('hidden');
+}
+function closeResizeModal(){document.getElementById('resize-overlay').classList.add('hidden');resizeWallId=null;}
+
+function buildResizeGrid(){
+  const wrap=document.getElementById('resize-gp-wrap');
+  wrap.innerHTML='';
+  const cw=13,ch=13;
+  const labelRow=document.createElement('div');
+  labelRow.style.cssText='display:flex;margin-left:18px;';
+  for(let c=1;c<=GP_COLS;c++){const l=document.createElement('div');l.style.cssText=`width:${cw+1}px;font-size:9px;color:var(--text3);text-align:center;`;l.textContent=c;labelRow.appendChild(l);}
+  wrap.appendChild(labelRow);
+  for(let r=1;r<=GP_ROWS;r++){
+    const row=document.createElement('div');row.style.cssText='display:flex;align-items:center;';
+    const rl=document.createElement('div');rl.style.cssText='width:18px;font-size:9px;color:var(--text3);text-align:right;padding-right:3px;';rl.textContent=r;row.appendChild(rl);
+    for(let c=1;c<=GP_COLS;c++){
+      const cell=document.createElement('div');
+      cell.style.cssText=`width:${cw}px;height:${ch}px;border:1px solid var(--border);cursor:pointer;flex-shrink:0;transition:background 0.05s;background:${c<=resizeCols&&r<=resizeRows?'var(--blue-m)':'var(--bg2)'};`;
+      cell.dataset.c=c;cell.dataset.r=r;
+      cell.addEventListener('mouseenter',()=>{
+        wrap.querySelectorAll('[data-c]').forEach(el=>{el.style.background=(+el.dataset.c<=+cell.dataset.c&&+el.dataset.r<=+cell.dataset.r)?'var(--blue-l)':'var(--bg2)';});
+      });
+      cell.addEventListener('click',()=>{resizeCols=+cell.dataset.c;resizeRows=+cell.dataset.r;buildResizeGrid();document.getElementById('resize-readout').textContent=`${resizeCols} × ${resizeRows} — ${resizeCols*resizeRows} panels`;});
+      row.appendChild(cell);
+    }
+    wrap.appendChild(row);
+  }
+  wrap.addEventListener('mouseleave',()=>{wrap.querySelectorAll('[data-c]').forEach(el=>{el.style.background=(+el.dataset.c<=resizeCols&&+el.dataset.r<=resizeRows)?'var(--blue-m)':'var(--bg2)';});});
+  document.getElementById('resize-readout').textContent=`${resizeCols} × ${resizeRows} — ${resizeCols*resizeRows} panels`;
+}
+
+document.getElementById('resize-cancel').addEventListener('click',closeResizeModal);
+document.getElementById('resize-overlay').addEventListener('click',e=>{if(e.target===document.getElementById('resize-overlay'))closeResizeModal();});
+document.getElementById('resize-confirm-btn').addEventListener('click',()=>{
+  const wall=getWall(resizeWallId); if(!wall)return;
+  pushHistory();
+  // Rebuild panels at new size, reset all runs
+  const panels=[];
+  for(let r=0;r<resizeRows;r++)for(let c=0;c<resizeCols;c++)
+    panels.push({id:nextId(),col:c,row:r,data:{runId:null,seq:null,circuitIdx:null},power:{runId:null,seq:null,circuitIdx:null}});
+  wall.panels=panels; wall.cols=resizeCols; wall.rows=resizeRows;
+  wall.dataRuns=[]; wall.powerRuns=[]; wall.customShape=false;
+  state.selectedRunId=null;
+  closeResizeModal(); closeEditModal(); renderAll(); saveLocal();
+});
+
+// Hook resize into edit modal
+document.getElementById('resize-wall-btn').addEventListener('click',()=>{
+  if(!editingWallId)return;
+  const wallId=editingWallId;
+  closeEditModal();
+  openResizeModal(wallId);
+});
+
+// ═══════════════════════════════════════════
+// LAYOUT VIEW
+// ═══════════════════════════════════════════
+const SNAP=24;
+let layoutPositions={};
+let isLayoutView=false;
+
+function openLayoutView(){
+  isLayoutView=true;
+  document.getElementById('layout-sidebar-slot').appendChild(document.getElementById('sidebar'));
+  document.getElementById('layout-view').classList.add('active');
+  renderLayoutView();
+}
+function closeLayoutView(){
+  isLayoutView=false;
+  document.getElementById('layout-view').classList.remove('active');
+  document.getElementById('app').insertAdjacentElement('afterbegin',document.getElementById('sidebar'));
+}
+
+function renderLayoutView(){
+  const inner=document.getElementById('layout-canvas-inner');
+  inner.innerHTML='';
+  const llItems=document.getElementById('ll-items');
+  llItems.innerHTML='';
+  const circuitsSeen=new Set();
+
+  state.walls.forEach((wall,wi)=>{
+    if(!layoutPositions[wall.id])layoutPositions[wall.id]={x:SNAP*2+wi*(SNAP*10),y:SNAP*2};
+    const pos=layoutPositions[wall.id];
+    const el=createLayoutWall(wall,pos);
+    inner.appendChild(el);
+    initLayoutDrag(el,wall.id);
+    const runs=state.view==='data'?wall.dataRuns:wall.powerRuns;
+    runs.forEach(run=>{
+      const color=run.color||CIRCUIT_COLORS[run.circuitIdx%8];
+      const key=color+wall.id+run.circuitIdx;
+      if(circuitsSeen.has(key))return;circuitsSeen.add(key);
+      const item=document.createElement('div');item.className='ll-item';
+      item.innerHTML=`<div class="ll-dot" style="background:${color};"></div><span>C${run.circuitIdx+1} — ${wall.name}</span>`;
+      llItems.appendChild(item);
+    });
+  });
+  const allEls=inner.querySelectorAll('.layout-wall');
+  let maxX=600,maxY=400;
+  allEls.forEach(el=>{maxX=Math.max(maxX,parseInt(el.style.left)+el.offsetWidth+SNAP*2);maxY=Math.max(maxY,parseInt(el.style.top)+el.offsetHeight+SNAP*2);});
+  inner.style.width=maxX+'px';inner.style.height=maxY+'px';
+}
+
+function createLayoutWall(wall,pos){
+  const SCALE=14;
+  const pt=PANEL_TYPES[wall.type];
+  const isVert=wall.vertical||pt.square;
+  const cw=pt.square?SCALE:(isVert?Math.round(SCALE*0.6):Math.round(SCALE*1.7));
+  const ch=pt.square?SCALE:(isVert?Math.round(SCALE*1.7):Math.round(SCALE*0.6));
+  const gap=1;
+  const totalW=wall.cols*cw+(wall.cols-1)*gap;
+  const totalH=wall.rows*ch+(wall.rows-1)*gap;
+  const runs=state.view==='data'?wall.dataRuns:wall.powerRuns;
+  const firstColor=runs.length>0?(runs[0].color||CIRCUIT_COLORS[runs[0].circuitIdx%8]):CIRCUIT_COLORS[0];
+
+  const el=document.createElement('div');
+  el.className='layout-wall';el.dataset.wallId=wall.id;
+  el.style.left=pos.x+'px';el.style.top=pos.y+'px';
+  el.innerHTML=`<div class="lw-header"><div class="lw-dot" style="background:${firstColor};"></div><div class="lw-name">${wall.name}</div><div class="lw-sub">&nbsp;· ${pt.label} ${wall.cols}×${wall.rows}</div></div>
+  <div style="position:relative;line-height:0;">
+    <div id="lw-grid-${wall.id}" style="display:grid;grid-template-columns:repeat(${wall.cols},${cw}px);gap:1px;background:var(--border);width:${totalW}px;"></div>
+    <svg id="lw-svg-${wall.id}" style="position:absolute;top:0;left:0;width:${totalW}px;height:${totalH}px;overflow:visible;pointer-events:none;" viewBox="0 0 ${totalW} ${totalH}"></svg>
+  </div>`;
+
+  const grid=el.querySelector(`#lw-grid-${wall.id}`);
+  const panelMap={};wall.panels.forEach(p=>panelMap[p.col+','+p.row]=p);
+  for(let r=0;r<wall.rows;r++){for(let c=0;c<wall.cols;c++){
+    const p=panelMap[c+','+r];
+    const cell=document.createElement('div');
+    cell.style.width=cw+'px';cell.style.height=ch+'px';
+    if(!p){cell.style.background='var(--bg)';cell.style.border='none';}
+    else{
+      const slot=p[state.view];
+      const run=slot.runId?runs.find(r=>r.id===slot.runId):null;
+      cell.style.background=run?(run.color?run.color+'22':CIRCUIT_LIGHT[run.circuitIdx%8]):'var(--bg2)';
+    }
+    grid.appendChild(cell);
+  }}
+
+  // Mini run lines
+  const svg=el.querySelector(`#lw-svg-${wall.id}`);
+  const defs=document.createElementNS('http://www.w3.org/2000/svg','defs');svg.appendChild(defs);
+  const cxF=col=>col*(cw+gap)+cw/2,cyF=row=>row*(ch+gap)+ch/2;
+  const OFF=3;
+  runs.forEach(run=>{
+    const color=run.color||CIRCUIT_COLORS[run.circuitIdx%8];
+    const panels=run.panelIds.map(id=>wall.panels.find(p=>p.id===id)).filter(Boolean);
+    if(!panels.length)return;
+    const mid='lwarr-'+run.id;
+    const m=document.createElementNS('http://www.w3.org/2000/svg','marker');
+    m.setAttribute('id',mid);m.setAttribute('markerWidth','7');m.setAttribute('markerHeight','7');
+    m.setAttribute('refX','6');m.setAttribute('refY','3.5');m.setAttribute('orient','auto');
+    const mp=document.createElementNS('http://www.w3.org/2000/svg','polygon');
+    mp.setAttribute('points','0 0,7 3.5,0 7');mp.setAttribute('fill',color);
+    m.appendChild(mp);defs.appendChild(m);
+    if(panels.length===1){
+      const dot=document.createElementNS('http://www.w3.org/2000/svg','circle');
+      dot.setAttribute('cx',cxF(panels[0].col));dot.setAttribute('cy',cyF(panels[0].row));
+      dot.setAttribute('r','3');dot.setAttribute('fill',color);svg.appendChild(dot);return;
+    }
+    const rowOrder=[...new Set(panels.map(p=>p.row))];
+    const pts=panels.map(p=>{
+      const ri=rowOrder.indexOf(p.row),sameRow=panels.filter(pp=>pp.row===p.row).length>1;
+      return{x:cxF(p.col),y:cyF(p.row)+(sameRow?(ri%2===0?-OFF/2:OFF/2):0)};
+    });
+    const pl=document.createElementNS('http://www.w3.org/2000/svg','polyline');
+    pl.setAttribute('points',pts.map(pt=>`${pt.x},${pt.y}`).join(' '));
+    pl.setAttribute('stroke',color);pl.setAttribute('stroke-width','1.5');
+    pl.setAttribute('fill','none');pl.setAttribute('stroke-linejoin','round');
+    pl.setAttribute('stroke-linecap','round');pl.setAttribute('marker-end',`url(#${mid})`);
+    svg.appendChild(pl);
+    const dot=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    dot.setAttribute('cx',pts[0].x);dot.setAttribute('cy',pts[0].y);
+    dot.setAttribute('r','2.5');dot.setAttribute('fill',color);svg.appendChild(dot);
+  });
+  return el;
+}
+
+function initLayoutDrag(el,wallId){
+  let sx,sy,sl,st,dragging=false;
+  el.addEventListener('mousedown',e=>{
+    if(e.button!==0)return;e.preventDefault();
+    dragging=true;sx=e.clientX;sy=e.clientY;
+    sl=parseInt(el.style.left);st=parseInt(el.style.top);
+    el.classList.add('dragging');
+  });
+  document.addEventListener('mousemove',e=>{
+    if(!dragging)return;
+    el.style.left=Math.max(0,Math.round((sl+e.clientX-sx)/SNAP)*SNAP)+'px';
+    el.style.top=Math.max(0,Math.round((st+e.clientY-sy)/SNAP)*SNAP)+'px';
+  });
+  document.addEventListener('mouseup',()=>{
+    if(!dragging)return;dragging=false;el.classList.remove('dragging');
+    layoutPositions[wallId]={x:parseInt(el.style.left),y:parseInt(el.style.top)};
+    saveLocal();
+  });
+}
+
+document.getElementById('gen-plan-btn').addEventListener('click',()=>{if(state.walls.length===0)return;openLayoutView();});
+document.getElementById('layout-back-btn').addEventListener('click',closeLayoutView);
+
+// ═══════════════════════════════════════════
+// EXPORT PDF
+// ═══════════════════════════════════════════
+function buildPrintPage(view,showName,date){
+  const SCALE=18,gap=1;
+  const page=document.createElement('div');page.className='print-page';
+  const tb=document.createElement('div');tb.className='print-title-block';
+  tb.innerHTML=`<div class="print-show-name">${showName||'Untitled Show'}</div>
+    <div class="print-meta">${date||''}</div>
+    <div class="print-sheet-type">${view==='data'?'Data wiring diagram':'Power wiring diagram'}</div>`;
+  page.appendChild(tb);
+  const wallsDiv=document.createElement('div');
+  wallsDiv.style.cssText='position:relative;min-height:500px;';
+  let maxY=0;
+  state.walls.forEach(wall=>{
+    const pos=layoutPositions[wall.id]||{x:0,y:0};
+    const pt=PANEL_TYPES[wall.type];
+    const isVert=wall.vertical||pt.square;
+    const cw=pt.square?SCALE:(isVert?Math.round(SCALE*0.6):Math.round(SCALE*1.7));
+    const ch=pt.square?SCALE:(isVert?Math.round(SCALE*1.7):Math.round(SCALE*0.6));
+    const totalW=wall.cols*cw+(wall.cols-1)*gap;
+    const totalH=wall.rows*ch+(wall.rows-1)*gap;
+    const runs=view==='data'?wall.dataRuns:wall.powerRuns;
+    const wDiv=document.createElement('div');
+    wDiv.style.cssText=`position:absolute;left:${pos.x}px;top:${pos.y+20}px;`;
+    const nameDiv=document.createElement('div');
+    nameDiv.style.cssText='font-size:10px;font-weight:600;color:#444;margin-bottom:5px;';
+    nameDiv.textContent=wall.name;wDiv.appendChild(nameDiv);
+    const gridWrap=document.createElement('div');gridWrap.style.cssText='position:relative;line-height:0;';
+    const grid=document.createElement('div');
+    grid.style.cssText=`display:grid;grid-template-columns:repeat(${wall.cols},${cw}px);gap:1px;background:#888780;width:${totalW}px;border:1px solid #888780;`;
+    const panelMap={};wall.panels.forEach(p=>panelMap[p.col+','+p.row]=p);
+    for(let r=0;r<wall.rows;r++){for(let c=0;c<wall.cols;c++){
+      const p=panelMap[c+','+r];const cell=document.createElement('div');
+      cell.style.width=cw+'px';cell.style.height=ch+'px';
+      if(!p){
+        cell.style.background='#888780';
+      } else {
+        const slot=p[view];const run=slot.runId?runs.find(r=>r.id===slot.runId):null;
+        const bgColor=run?(run.color?run.color+'44':CIRCUIT_LIGHT[run.circuitIdx%8]):'#d3d1c7';
+        cell.style.cssText=`width:${cw}px;height:${ch}px;background:${bgColor};`;
+      }
+      grid.appendChild(cell);
+    }}
+    gridWrap.appendChild(grid);
+    const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+    svg.setAttribute('style',`position:absolute;top:0;left:0;width:${totalW}px;height:${totalH}px;overflow:visible;`);
+    svg.setAttribute('viewBox',`0 0 ${totalW} ${totalH}`);
+    const defs=document.createElementNS('http://www.w3.org/2000/svg','defs');svg.appendChild(defs);
+    const cxF=col=>col*(cw+gap)+cw/2,cyF=row=>row*(ch+gap)+ch/2,OFF=4;
+    runs.forEach(run=>{
+      const color=run.color||CIRCUIT_COLORS[run.circuitIdx%8];
+      const panels=run.panelIds.map(id=>wall.panels.find(p=>p.id===id)).filter(Boolean);
+      if(!panels.length)return;
+      const mid='pa-'+run.id+view;
+      const m=document.createElementNS('http://www.w3.org/2000/svg','marker');
+      m.setAttribute('id',mid);m.setAttribute('markerWidth','8');m.setAttribute('markerHeight','8');
+      m.setAttribute('refX','7');m.setAttribute('refY','4');m.setAttribute('orient','auto');
+      const mp=document.createElementNS('http://www.w3.org/2000/svg','polygon');
+      mp.setAttribute('points','0 0,8 4,0 8');mp.setAttribute('fill',color);
+      m.appendChild(mp);defs.appendChild(m);
+      if(panels.length===1){const dot=document.createElementNS('http://www.w3.org/2000/svg','circle');dot.setAttribute('cx',cxF(panels[0].col));dot.setAttribute('cy',cyF(panels[0].row));dot.setAttribute('r','4');dot.setAttribute('fill',color);svg.appendChild(dot);return;}
+      const rowOrder=[...new Set(panels.map(p=>p.row))];
+      const pts=panels.map(p=>{const ri=rowOrder.indexOf(p.row),sr=panels.filter(pp=>pp.row===p.row).length>1;return{x:cxF(p.col),y:cyF(p.row)+(sr?(ri%2===0?-OFF/2:OFF/2):0)};});
+      const pl=document.createElementNS('http://www.w3.org/2000/svg','polyline');
+      pl.setAttribute('points',pts.map(pt=>`${pt.x},${pt.y}`).join(' '));
+      pl.setAttribute('stroke',color);pl.setAttribute('stroke-width','2');pl.setAttribute('fill','none');
+      pl.setAttribute('stroke-linejoin','round');pl.setAttribute('stroke-linecap','round');pl.setAttribute('marker-end',`url(#${mid})`);
+      svg.appendChild(pl);
+      const dot=document.createElementNS('http://www.w3.org/2000/svg','circle');dot.setAttribute('cx',pts[0].x);dot.setAttribute('cy',pts[0].y);dot.setAttribute('r','3.5');dot.setAttribute('fill',color);svg.appendChild(dot);
+    });
+    gridWrap.appendChild(svg);wDiv.appendChild(gridWrap);wallsDiv.appendChild(wDiv);
+    maxY=Math.max(maxY,pos.y+totalH+60);
+  });
+  wallsDiv.style.height=(maxY+40)+'px';
+  page.appendChild(wallsDiv);
+  // Legend
+  const legend=document.createElement('div');
+  legend.style.cssText='margin-top:24px;border:1px solid #ddd;border-radius:6px;padding:10px 12px;display:inline-block;';
+  const lt=document.createElement('div');lt.style.cssText='font-size:9px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;';lt.textContent='Circuits';legend.appendChild(lt);
+  const seen=new Set();
+  state.walls.forEach(wall=>{
+    const runs=view==='data'?wall.dataRuns:wall.powerRuns;
+    runs.forEach(run=>{
+      const color=run.color||CIRCUIT_COLORS[run.circuitIdx%8];
+      const key=color+wall.id+run.circuitIdx;if(seen.has(key))return;seen.add(key);
+      const li=document.createElement('div');li.style.cssText='display:flex;align-items:center;gap:5px;font-size:9px;color:#444;margin-bottom:3px;';
+      li.innerHTML=`<div style="width:8px;height:8px;border-radius:2px;background:${color};flex-shrink:0;"></div><span>C${run.circuitIdx+1} — ${wall.name}</span>`;
+      legend.appendChild(li);
+    });
+  });
+  page.appendChild(legend);
+  return page;
+}
+
+document.getElementById('layout-export-btn').addEventListener('click',()=>{
+  document.getElementById('export-date').value=new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+  document.getElementById('export-overlay').classList.remove('hidden');
+  document.getElementById('export-show-name').focus();
+});
+document.getElementById('export-cancel').addEventListener('click',()=>document.getElementById('export-overlay').classList.add('hidden'));
+document.getElementById('export-overlay').addEventListener('click',e=>{if(e.target===document.getElementById('export-overlay'))document.getElementById('export-overlay').classList.add('hidden');});
+document.getElementById('export-confirm').addEventListener('click',()=>{
+  const showName=document.getElementById('export-show-name').value.trim();
+  const date=document.getElementById('export-date').value.trim();
+  document.getElementById('export-overlay').classList.add('hidden');
+  const pc=document.getElementById('print-container');pc.innerHTML='';
+  pc.appendChild(buildPrintPage('data',showName,date));
+  pc.appendChild(buildPrintPage('power',showName,date));
+  setTimeout(()=>window.print(),150);
+});
+
+// ═══════════════════════════════════════════
+// UPCOMING FEATURES POPUP
+// ═══════════════════════════════════════════
+document.getElementById('upcoming-btn').addEventListener('click',()=>document.getElementById('upcoming-overlay').classList.remove('hidden'));
+document.getElementById('upcoming-close').addEventListener('click',()=>document.getElementById('upcoming-overlay').classList.add('hidden'));
+document.getElementById('upcoming-overlay').addEventListener('click',e=>{if(e.target===document.getElementById('upcoming-overlay'))document.getElementById('upcoming-overlay').classList.add('hidden');});
+function saveLocal(){
+  try{localStorage.setItem(STORAGE_KEY,JSON.stringify({walls:state.walls,activeWallId:state.activeWallId,layoutPositions}));}catch(e){}
+}
+function migrateWall(w){
+  if(!w.dataRuns){w.dataRuns=w.runs||[];delete w.runs;}
+  if(!w.powerRuns)w.powerRuns=[];
+  if(!w.voltage)w.voltage=208;
+  if(!w.circuitSize)w.circuitSize=20;
+  if(w.customShape===undefined)w.customShape=false;
+  w.panels=(w.panels||[]).map(p=>{
+    if(!p.data){p.data={runId:p.runId||null,seq:p.seq||null,circuitIdx:p.circuitIdx||null};p.power={runId:null,seq:null,circuitIdx:null};delete p.runId;delete p.seq;delete p.circuitIdx;}
+    if(!p.power)p.power={runId:null,seq:null,circuitIdx:null};
+    return p;
+  });
+  return w;
+}
+function loadLocal(){
+  try{
+    localStorage.removeItem('led-wiring-tool-v1');
+    localStorage.removeItem('pixelpath-v1');
+    const raw=localStorage.getItem(STORAGE_KEY);
+    if(!raw)return;
+    const data=JSON.parse(raw);
+    if(data.walls)state.walls=data.walls.map(migrateWall);
+    if(data.activeWallId)state.activeWallId=data.activeWallId;
+    if(data.layoutPositions)layoutPositions=data.layoutPositions;
+  }catch(e){localStorage.removeItem(STORAGE_KEY);}
+}
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+loadLocal();
+pushHistory();
+buildSwatches();
+renderAll();
+</script>
 </body>
 </html>

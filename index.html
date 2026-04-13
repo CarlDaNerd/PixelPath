@@ -192,13 +192,13 @@
   .wall-complete-badge{font-size:10px;font-weight:600;color:var(--green);background:var(--green-l);border-radius:10px;padding:2px 8px;display:flex;align-items:center;gap:4px;}
   .grid-container{position:relative;display:inline-block;line-height:0;user-select:none;}
   /* Dark grid background shows through 1px gap = dark lines between light panels */
-  .panel-grid{display:grid;gap:1px;background:#888780;border:1px solid #888780;cursor:crosshair;position:relative;z-index:1;}
+  .panel-grid{display:grid;gap:1px;background:var(--surface);border:1px solid var(--border);cursor:crosshair;position:relative;z-index:1;}
   /* Panels are always light grey regardless of dark/light mode */
-  .panel-cell{background:#d3d1c7;position:relative;transition:background 0.1s;}
-  .panel-cell.unassigned{background:#d3d1c7;}
-  .panel-cell.assigned{background:#d3d1c7;}
+  .panel-cell{background:var(--border);position:relative;transition:background 0.1s;}
+  .panel-cell.unassigned{background:var(--border);}
+  .panel-cell.assigned{background:var(--text);}
   /* Empty spacer — matches dark grid background */
-  .panel-cell.empty-spacer{background:#888780!important;cursor:default!important;}
+  .panel-cell.empty-spacer{background:var(--surface)!important;cursor:default!important;}
   .panel-cell.drag-hover{background:var(--blue-l)!important;box-shadow:inset 0 0 0 2px var(--blue);}
   .panel-cell.run-selected{box-shadow:inset 0 0 0 2px var(--blue);}
   .panel-label{position:absolute;top:3px;left:4px;font-size:9px;font-weight:600;color:var(--text2);font-family:var(--mono);pointer-events:none;}

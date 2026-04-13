@@ -3,28 +3,60 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PixelPath v2.1.0</title>
+<title>PixelPath v2.2.0</title>
 <style>
+  /* ── LIGHT THEME (default) ── */
   :root {
-    --bg:#f5f4f1;--bg2:#eceae5;--bg3:#e2e0da;--surface:#fff;
+    --bg:#f2f2f2;--bg2:#e8e8e8;--bg3:#d0d0d0;--surface:#fff;
     --border:rgba(0,0,0,0.1);--border2:rgba(0,0,0,0.18);
     --text:#1a1a18;--text2:#555550;--text3:#999990;
     --blue:#2563eb;--blue-l:#dbeafe;--blue-m:#93c5fd;--blue-d:#1d4ed8;
     --green:#16a34a;--green-l:#dcfce7;
     --red:#dc2626;--red-l:#fee2e2;
-    --unassigned:#c8c6be;
     --font:'DM Sans',system-ui,sans-serif;
     --mono:'DM Mono',monospace;
+    /* Panel color scheme C — true neutral */
+    --panel-bg:#dedede;
+    --panel-grid:#b0b0b0;
+    --panel-empty:#b0b0b0;
+    /* Circuit tints — light mode: soft tint */
+    --c0-tint:#bfdbfe;--c1-tint:#bbf7d0;--c2-tint:#fde68a;
+    --c3-tint:#e9d5ff;--c4-tint:#fecaca;--c5-tint:#a5f3fc;
+    --c6-tint:#fed7aa;--c7-tint:#c7d2fe;
   }
-  @media(prefers-color-scheme:dark){:root{
-    --bg:#141413;--bg2:#1e1d1b;--bg3:#252420;--surface:#1e1d1b;
+  /* Dark theme via attribute */
+  [data-theme="dark"] {
+    --bg:#1a1a1a;--bg2:#242424;--bg3:#303030;--surface:#242424;
     --border:rgba(255,255,255,0.09);--border2:rgba(255,255,255,0.16);
     --text:#f0ede8;--text2:#a8a59e;--text3:#5a5852;
     --blue:#3b82f6;--blue-l:#1e3a5f;--blue-m:#1d4ed8;--blue-d:#60a5fa;
     --green:#22c55e;--green-l:#14532d;
     --red:#f87171;--red-l:#450a0a;
-    --unassigned:#2e2d29;
-  }}
+    --panel-bg:#303030;
+    --panel-grid:#1a1a1a;
+    --panel-empty:#1a1a1a;
+    /* Circuit tints — dark mode: saturated mid-tones */
+    --c0-tint:#1d4ed8;--c1-tint:#15803d;--c2-tint:#b45309;
+    --c3-tint:#7e22ce;--c4-tint:#b91c1c;--c5-tint:#0e7490;
+    --c6-tint:#c2410c;--c7-tint:#4338ca;
+  }
+  /* System default dark */
+  @media(prefers-color-scheme:dark){
+    :root:not([data-theme="light"]) {
+      --bg:#1a1a1a;--bg2:#242424;--bg3:#303030;--surface:#242424;
+      --border:rgba(255,255,255,0.09);--border2:rgba(255,255,255,0.16);
+      --text:#f0ede8;--text2:#a8a59e;--text3:#5a5852;
+      --blue:#3b82f6;--blue-l:#1e3a5f;--blue-m:#1d4ed8;--blue-d:#60a5fa;
+      --green:#22c55e;--green-l:#14532d;
+      --red:#f87171;--red-l:#450a0a;
+      --panel-bg:#303030;
+      --panel-grid:#1a1a1a;
+      --panel-empty:#1a1a1a;
+      --c0-tint:#1d4ed8;--c1-tint:#15803d;--c2-tint:#b45309;
+      --c3-tint:#7e22ce;--c4-tint:#b91c1c;--c5-tint:#0e7490;
+      --c6-tint:#c2410c;--c7-tint:#4338ca;
+    }
+  }
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap');
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
   html,body{height:100%;overflow:hidden;font-family:var(--font);background:var(--bg);color:var(--text);font-size:13px;}
@@ -192,13 +224,13 @@
   .wall-complete-badge{font-size:10px;font-weight:600;color:var(--green);background:var(--green-l);border-radius:10px;padding:2px 8px;display:flex;align-items:center;gap:4px;}
   .grid-container{position:relative;display:inline-block;line-height:0;user-select:none;}
   /* Dark grid background shows through 1px gap = dark lines between light panels */
-  .panel-grid{display:grid;gap:1px;background:var(--surface);border:1px solid var(--border);cursor:crosshair;position:relative;z-index:1;}
-  /* Panels are always light grey regardless of dark/light mode */
-  .panel-cell{background:var(--border);position:relative;transition:background 0.1s;}
-  .panel-cell.unassigned{background:var(--border);}
-  .panel-cell.assigned{background:var(--border);}
+  .panel-grid{display:grid;gap:1px;background:var(--panel-grid);border:1px solid var(--panel-grid);cursor:crosshair;position:relative;z-index:1;}
+  /* All panels are light grey by default */
+  .panel-cell{background:var(--panel-bg);position:relative;transition:background 0.1s;}
+  .panel-cell.unassigned{background:var(--panel-bg);}
+  .panel-cell.assigned{background:var(--panel-bg);}
   /* Empty spacer — matches dark grid background */
-  .panel-cell.empty-spacer{background:var(--surface)!important;cursor:default!important;}
+  .panel-cell.empty-spacer{background:var(--panel-empty)!important;cursor:default!important;}
   .panel-cell.drag-hover{background:var(--blue-l)!important;box-shadow:inset 0 0 0 2px var(--blue);}
   .panel-cell.run-selected{box-shadow:inset 0 0 0 2px var(--blue);}
   .panel-label{position:absolute;top:3px;left:4px;font-size:9px;font-weight:600;color:var(--text2);font-family:var(--mono);pointer-events:none;}
@@ -288,6 +320,25 @@
   .rename-input{font-size:13px;padding:7px 10px;border:1px solid var(--border2);border-radius:6px;background:var(--bg);color:var(--text);width:100%;font-family:var(--font);outline:none;}
   .rename-input:focus{border-color:var(--blue);}
 
+  /* ── SETTINGS PANEL ── */
+  #settings-panel{position:fixed;top:0;right:0;bottom:0;width:280px;background:var(--surface);border-left:1px solid var(--border2);z-index:150;display:flex;flex-direction:column;transform:translateX(100%);transition:transform 0.22s cubic-bezier(0.4,0,0.2,1);box-shadow:-8px 0 32px rgba(0,0,0,0.12);}
+  #settings-panel.open{transform:translateX(0);}
+  .sp-head{padding:14px 16px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+  .sp-title{font-size:14px;font-weight:600;}
+  .sp-close{font-size:18px;color:var(--text3);cursor:pointer;padding:2px 4px;border-radius:4px;background:none;border:none;font-family:var(--font);line-height:1;}
+  .sp-close:hover{color:var(--text);background:var(--bg2);}
+  .sp-body{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:18px;}
+  .sp-section{display:flex;flex-direction:column;gap:9px;}
+  .sp-section-lbl{font-size:9px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;padding-bottom:4px;border-bottom:1px solid var(--border);}
+  .sp-row{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .sp-row-label{font-size:12px;color:var(--text2);white-space:nowrap;}
+  .sp-seg{display:flex;border:1px solid var(--border2);border-radius:5px;overflow:hidden;flex-shrink:0;}
+  .sp-seg-btn{font-size:11px;font-weight:500;padding:4px 8px;background:transparent;color:var(--text2);border:none;cursor:pointer;font-family:var(--font);white-space:nowrap;transition:all 0.1s;}
+  .sp-seg-btn.active{background:var(--blue);color:#fff;}
+  .sp-seg-btn:not(.active):hover{background:var(--bg2);}
+  .sp-input{font-size:12px;padding:5px 8px;border:1px solid var(--border2);border-radius:5px;background:var(--bg);color:var(--text);font-family:var(--font);outline:none;width:150px;}
+  .sp-input:focus{border-color:var(--blue);}
+
   /* Generate plan button */
   .gen-plan-btn{width:100%;font-size:12px;font-weight:600;color:#fff;background:var(--blue);border:none;border-radius:6px;padding:8px 0;cursor:pointer;font-family:var(--font);transition:background 0.12s;}
   .gen-plan-btn:hover{background:var(--blue-d);}
@@ -360,12 +411,6 @@
     .print-legend-dot{width:8px;height:8px;border-radius:2px;}
   }
   #print-container{display:none;}
-  
-	/* Settings segmented buttons */
-	.seg-full{display:flex;border:1px solid var(--border2);border-radius:6px;overflow:hidden;width:100%;}
-	.seg-full-btn{flex:1;font-size:11px;font-weight:500;padding:5px 0;background:transparent;color:var(--text2);border:none;cursor:pointer;font-family:var(--font);text-align:center;transition:all 0.1s;}
-	.seg-full-btn.active{background:var(--blue);color:#fff;}
-	.seg-full-btn:not(.active):hover{background:var(--bg2);}
 </style>
 </head>
 <body>
@@ -374,7 +419,7 @@
   <div id="sidebar">
     <div class="sb-head">
       <div class="sb-name">PixelPath</div>
-      <div class="sb-sub" id="sb-sub">v2.1.0</div>
+      <div class="sb-sub" id="sb-sub">v2.2.0</div>
     </div>
     <div class="sb-walls" id="sb-walls">
       <div class="sb-lbl">Walls</div>
@@ -473,13 +518,13 @@
     <div id="power-footer">
       <span class="pf-label">Power</span>
       <div id="pf-circuits" style="display:flex;align-items:center;gap:12px;flex:1;overflow:hidden;"></div>
-      <button class="sb-upcoming-btn" id="settings-btn" title="Settings" style="margin-left:auto;flex-shrink:0;margin-right:8px;">
-		<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m5.08 0l4.24-4.24M1 12h6m6 0h6m-1.78 7.78l-4.24-4.24m-5.08 0l-4.24 4.24"></path></svg>
-		Settings
-	  </button>
-	  <button class="sb-upcoming-btn" id="upcoming-btn" title="What's next" style="margin-left:auto;flex-shrink:0;">
+      <button class="sb-upcoming-btn" id="upcoming-btn" title="What's next" style="flex-shrink:0;">
         <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.3"/><line x1="7" y1="6" x2="7" y2="10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="7" cy="4" r="0.7" fill="currentColor"/></svg>
         What's next
+      </button>
+      <button class="sb-upcoming-btn" id="settings-btn" title="Settings" style="flex-shrink:0;">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M7 9A2 2 0 107 5a2 2 0 000 4z" stroke="currentColor" stroke-width="1.3"/><path d="M11.3 7c0-.18-.02-.35-.04-.52l1.12-.88a.27.27 0 00.06-.34l-1.06-1.84a.27.27 0 00-.33-.12l-1.32.53a3.9 3.9 0 00-.9-.52l-.2-1.4A.27.27 0 008.36 2H6.64a.27.27 0 00-.27.23l-.2 1.4a3.9 3.9 0 00-.9.52L3.95 3.6a.27.27 0 00-.33.12L2.56 5.56a.27.27 0 00.06.34l1.12.88A4.1 4.1 0 003.7 7c0 .18.02.35.04.52l-1.12.88a.27.27 0 00-.06.34l1.06 1.84c.07.12.21.17.33.12l1.32-.53c.28.2.58.37.9.52l.2 1.4c.04.13.15.23.27.23h1.72c.12 0 .23-.1.27-.23l.2-1.4c.32-.15.62-.32.9-.52l1.32.53c.12.05.26 0 .33-.12l1.06-1.84a.27.27 0 00-.06-.34l-1.12-.88c.02-.17.04-.34.04-.52z" stroke="currentColor" stroke-width="1.3"/></svg>
+        Settings
       </button>
     </div>
   </div>
@@ -637,76 +682,6 @@
   </div>
 </div>
 
-<!-- SETTINGS MODAL -->
-<div class="modal-overlay hidden" id="settings-overlay">
-  <div class="modal" style="width:420px;">
-    <div class="modal-head">
-      <span class="modal-title">Settings</span>
-      <span class="modal-close" id="settings-close">✕</span>
-    </div>
-    <div class="modal-body" style="flex-direction:column;gap:16px;">
-      <!-- Theme -->
-      <div>
-        <div class="field-label">Theme</div>
-        <div class="seg-full" id="theme-seg">
-          <button class="seg-full-btn active" data-theme="light">Light</button>
-          <button class="seg-full-btn" data-theme="dark">Dark</button>
-          <button class="seg-full-btn" data-theme="system">System</button>
-        </div>
-      </div>
-
-      <!-- Display -->
-      <div>
-        <div class="field-label">Panel Size</div>
-        <div class="seg-full" id="size-seg">
-          <button class="seg-full-btn" data-size="small">Small</button>
-          <button class="seg-full-btn active" data-size="medium">Medium</button>
-          <button class="seg-full-btn" data-size="large">Large</button>
-        </div>
-      </div>
-
-      <!-- Defaults -->
-      <div>
-        <div class="field-label">Default Voltage</div>
-        <div class="seg-full" id="voltage-seg">
-          <button class="seg-full-btn active" data-voltage="208">208V</button>
-          <button class="seg-full-btn" data-voltage="120">120V</button>
-        </div>
-      </div>
-
-      <div>
-        <div class="field-label">Default Circuit</div>
-        <div class="seg-full" id="circuit-seg">
-          <button class="seg-full-btn active" data-circuit="20">20A</button>
-          <button class="seg-full-btn" data-circuit="15">15A</button>
-        </div>
-      </div>
-
-      <div>
-        <div class="field-label">Default Panel Type</div>
-        <div class="seg-full" id="paneltype-seg">
-          <button class="seg-full-btn active" data-paneltype="gmars">GMARS</button>
-          <button class="seg-full-btn" data-paneltype="f5ip">F5IP</button>
-          <button class="seg-full-btn" data-paneltype="f3x">F3X</button>
-        </div>
-      </div>
-
-      <!-- Export -->
-      <div>
-        <div class="field-label">Export Show Name</div>
-        <input class="name-input" id="settings-showname" type="text" placeholder="e.g. My Event 2026"/>
-      </div>
-
-      <div>
-        <div class="field-label">Date Format</div>
-        <div class="seg-full" id="dateformat-seg">
-          <button class="seg-full-btn active" data-dateformat="long">Month D, YYYY</button>
-          <button class="seg-full-btn" data-dateformat="short">MM/DD/YYYY</button>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
 <!-- LAYOUT VIEW -->
 <div id="layout-view">
   <div id="layout-sidebar-slot"></div>
@@ -749,6 +724,77 @@
 <!-- PRINT CONTAINER -->
 <div id="print-container"></div>
 
+<!-- SETTINGS PANEL -->
+<div id="settings-panel">
+  <div class="sp-head">
+    <span class="sp-title">Settings</span>
+    <button class="sp-close" id="settings-close">✕</button>
+  </div>
+  <div class="sp-body">
+    <div class="sp-section">
+      <div class="sp-section-lbl">Theme</div>
+      <div class="sp-row">
+        <div class="sp-row-label">Appearance</div>
+        <div class="sp-seg" id="sp-theme">
+          <button class="sp-seg-btn" data-val="light">Light</button>
+          <button class="sp-seg-btn" data-val="dark">Dark</button>
+          <button class="sp-seg-btn active" data-val="system">System</button>
+        </div>
+      </div>
+    </div>
+    <div class="sp-section">
+      <div class="sp-section-lbl">Display</div>
+      <div class="sp-row">
+        <div class="sp-row-label">Panel size</div>
+        <div class="sp-seg" id="sp-panelsize">
+          <button class="sp-seg-btn" data-val="S">S</button>
+          <button class="sp-seg-btn active" data-val="M">M</button>
+          <button class="sp-seg-btn" data-val="L">L</button>
+        </div>
+      </div>
+    </div>
+    <div class="sp-section">
+      <div class="sp-section-lbl">Defaults for new walls</div>
+      <div class="sp-row">
+        <div class="sp-row-label">Voltage</div>
+        <div class="sp-seg" id="sp-voltage">
+          <button class="sp-seg-btn active" data-val="208">208V</button>
+          <button class="sp-seg-btn" data-val="120">120V</button>
+        </div>
+      </div>
+      <div class="sp-row">
+        <div class="sp-row-label">Circuit</div>
+        <div class="sp-seg" id="sp-circuit">
+          <button class="sp-seg-btn active" data-val="20">20A</button>
+          <button class="sp-seg-btn" data-val="15">15A</button>
+        </div>
+      </div>
+      <div class="sp-row">
+        <div class="sp-row-label">Panel type</div>
+        <div class="sp-seg" id="sp-paneltype">
+          <button class="sp-seg-btn active" data-val="gmars">GMARS</button>
+          <button class="sp-seg-btn" data-val="f5ip">F5IP</button>
+          <button class="sp-seg-btn" data-val="f3x">F3X</button>
+        </div>
+      </div>
+    </div>
+    <div class="sp-section">
+      <div class="sp-section-lbl">Export</div>
+      <div class="sp-row">
+        <div class="sp-row-label">Show name</div>
+        <input class="sp-input" id="sp-showname" type="text" placeholder="e.g. My Show"/>
+      </div>
+      <div class="sp-row">
+        <div class="sp-row-label">Date format</div>
+        <div class="sp-seg" id="sp-dateformat">
+          <button class="sp-seg-btn active" data-val="long">Long</button>
+          <button class="sp-seg-btn" data-val="short">MM/DD</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 // ═══════════════════════════════════════════
 // CONSTANTS
@@ -759,11 +805,24 @@ const PANEL_TYPES = {
   f3x:  {label:'F3X',  sub:'0.5×1m rect',    square:false,amps208:1.47,amps120:2.54},
 };
 const CIRCUIT_COLORS=['#2563eb','#16a34a','#d97706','#9333ea','#dc2626','#0891b2','#c2410c','#4f46e5'];
-const CIRCUIT_LIGHT =['#dbeafe','#dcfce7','#fef3c7','#f3e8ff','#fee2e2','#cffafe','#ffedd5','#e0e7ff'];
-const SWATCH_COLORS =['#2563eb','#16a34a','#d97706','#9333ea','#dc2626','#0891b2','#c2410c','#4f46e5'];
+const CIRCUIT_LIGHT_VARS=['--c0-tint','--c1-tint','--c2-tint','--c3-tint','--c4-tint','--c5-tint','--c6-tint','--c7-tint'];
+const getTint=i=>getComputedStyle(document.documentElement).getPropertyValue(CIRCUIT_LIGHT_VARS[i%8]).trim();
+const SWATCH_COLORS=['#2563eb','#16a34a','#d97706','#9333ea','#dc2626','#0891b2','#c2410c','#4f46e5'];
 const CELL_PX=56, MAX_20=16, MAX_15=12;
 const GP_COLS=12, GP_ROWS=8;
 const STORAGE_KEY='pixelpath-v2';
+const PANEL_SIZE_MAP={S:40,M:56,L:72};
+
+// Settings state (persisted separately)
+let settings={
+  theme:'system',      // 'light'|'dark'|'system'
+  panelSize:'M',       // 'S'|'M'|'L'
+  defaultVoltage:208,
+  defaultCircuit:20,
+  defaultPanelType:'gmars',
+  exportShowName:'',
+  exportDateFormat:'long', // 'long'|'short'
+};
 
 // ═══════════════════════════════════════════
 // STATE
@@ -833,7 +892,7 @@ function createWall(name,type,cols,rows,vertical){
       data:{runId:null,seq:null,circuitIdx:null},
       power:{runId:null,seq:null,circuitIdx:null}});
   return{id:nextId(),name,type,cols,rows,vertical,panels,dataRuns:[],powerRuns:[],
-    voltage:208,circuitSize:20,customShape:false};
+    voltage:settings.defaultVoltage,circuitSize:settings.defaultCircuit,customShape:false};
 }
 function addWall(name,type,cols,rows,vertical){
   pushHistory();
@@ -997,8 +1056,9 @@ function renderCanvas(){
   }
   const pt=PANEL_TYPES[wall.type];
   const isVert=wall.vertical||pt.square;
-  const cellW=CELL_PX;
-  const cellH=pt.square?CELL_PX:(isVert?Math.round(CELL_PX*1.8):Math.round(CELL_PX*0.55));
+  const cellPx=PANEL_SIZE_MAP[settings.panelSize]||56;
+  const cellW=cellPx;
+  const cellH=pt.square?cellPx:(isVert?Math.round(cellPx*1.8):Math.round(cellPx*0.55));
   const gap=1;
   const totalW=wall.cols*cellW+(wall.cols-1)*gap;
   const totalH=wall.rows*cellH+(wall.rows-1)*gap;
@@ -1041,12 +1101,11 @@ function renderCanvas(){
       const isAssigned=slot.runId!==null;
       const run=isAssigned?runs.find(r=>r.id===slot.runId):null;
       const isSelected=run&&run.id===state.selectedRunId;
-      const bgColor=isAssigned&&run?(CIRCUIT_LIGHT[run.circuitIdx%8]):null;
+      const bgColor=isAssigned&&run?(run.color?run.color+'33':getTint(run.circuitIdx)):null;
       const cell=document.createElement('div');
       cell.className='panel-cell'+(isAssigned?' assigned':' unassigned')+(isSelected?' run-selected':'');
       cell.style.width=cellW+'px'; cell.style.height=cellH+'px';
       if(bgColor)cell.style.background=bgColor;
-      if(run?.color)cell.style.background=run.color+'22';
       cell.dataset.col=p.col; cell.dataset.row=p.row;
       if(isAssigned)cell.innerHTML=`<div class="panel-label">${slot.seq}</div>`;
       grid.appendChild(cell);
@@ -1522,11 +1581,14 @@ document.getElementById('prompt-overlay').addEventListener('click',e=>{if(e.targ
 // NEW WALL MODAL
 // ═══════════════════════════════════════════
 function openNewWallModal(){
-  mState={cols:4,rows:3,type:'gmars',vertical:true};
+  const defType=settings.defaultPanelType||'gmars';
+  mState={cols:4,rows:3,type:defType,vertical:true};
   document.getElementById('wall-name-input').value=`Wall ${state.walls.length+1}`;
-  document.querySelectorAll('.type-card').forEach(c=>c.classList.toggle('active',c.dataset.type==='gmars'));
-  document.getElementById('orient-v').classList.add('disabled','active');
-  document.getElementById('orient-h').classList.add('disabled');
+  document.querySelectorAll('.type-card').forEach(c=>c.classList.toggle('active',c.dataset.type===defType));
+  const sq=PANEL_TYPES[defType].square;
+  document.getElementById('orient-v').classList.toggle('disabled',sq);
+  document.getElementById('orient-v').classList.add('active');
+  document.getElementById('orient-h').classList.toggle('disabled',sq);
   document.getElementById('orient-h').classList.remove('active');
   buildModalGrid();updateModalPreview();
   document.getElementById('modal-overlay').classList.remove('hidden');
@@ -1876,7 +1938,7 @@ function createLayoutWall(wall,pos){
     else{
       const slot=p[state.view];
       const run=slot.runId?runs.find(r=>r.id===slot.runId):null;
-      cell.style.background=run?(run.color?run.color+'22':CIRCUIT_LIGHT[run.circuitIdx%8]):'var(--bg2)';
+      cell.style.background=run?(run.color?run.color+'33':getTint(run.circuitIdx)):'var(--panel-bg)';
     }
     grid.appendChild(cell);
   }}
@@ -1982,7 +2044,7 @@ function buildPrintPage(view,showName,date){
         cell.style.background='#888780';
       } else {
         const slot=p[view];const run=slot.runId?runs.find(r=>r.id===slot.runId):null;
-        const bgColor=run?(run.color?run.color+'44':CIRCUIT_LIGHT[run.circuitIdx%8]):'#d3d1c7';
+        const bgColor=run?(run.color?run.color+'44':getTint(run.circuitIdx)):'#dedede';
         cell.style.cssText=`width:${cw}px;height:${ch}px;background:${bgColor};`;
       }
       grid.appendChild(cell);
@@ -2039,7 +2101,11 @@ function buildPrintPage(view,showName,date){
 }
 
 document.getElementById('layout-export-btn').addEventListener('click',()=>{
-  document.getElementById('export-date').value=new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+  const fmt=settings.exportDateFormat==='short'
+    ?new Date().toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'numeric'})
+    :new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+  document.getElementById('export-date').value=fmt;
+  document.getElementById('export-show-name').value=settings.exportShowName||'';
   document.getElementById('export-overlay').classList.remove('hidden');
   document.getElementById('export-show-name').focus();
 });
@@ -2056,8 +2122,93 @@ document.getElementById('export-confirm').addEventListener('click',()=>{
 });
 
 // ═══════════════════════════════════════════
-// UPCOMING FEATURES POPUP
+// SETTINGS
 // ═══════════════════════════════════════════
+const SETTINGS_KEY='pixelpath-settings';
+
+function saveSettings(){
+  try{localStorage.setItem(SETTINGS_KEY,JSON.stringify(settings));}catch(e){}
+}
+function loadSettings(){
+  try{
+    const raw=localStorage.getItem(SETTINGS_KEY);
+    if(raw)Object.assign(settings,JSON.parse(raw));
+  }catch(e){}
+}
+function applyTheme(){
+  const root=document.documentElement;
+  if(settings.theme==='light'){root.setAttribute('data-theme','light');root.removeAttribute('data-theme');/* no attr needed for light */}
+  else if(settings.theme==='dark'){root.setAttribute('data-theme','dark');}
+  else{root.removeAttribute('data-theme');} // system = let media query decide
+}
+function syncSettingsUI(){
+  // Theme
+  document.querySelectorAll('#sp-theme .sp-seg-btn').forEach(b=>b.classList.toggle('active',b.dataset.val===settings.theme));
+  // Panel size
+  document.querySelectorAll('#sp-panelsize .sp-seg-btn').forEach(b=>b.classList.toggle('active',b.dataset.val===settings.panelSize));
+  // Voltage
+  document.querySelectorAll('#sp-voltage .sp-seg-btn').forEach(b=>b.classList.toggle('active',+b.dataset.val===settings.defaultVoltage));
+  // Circuit
+  document.querySelectorAll('#sp-circuit .sp-seg-btn').forEach(b=>b.classList.toggle('active',+b.dataset.val===settings.defaultCircuit));
+  // Panel type
+  document.querySelectorAll('#sp-paneltype .sp-seg-btn').forEach(b=>b.classList.toggle('active',b.dataset.val===settings.defaultPanelType));
+  // Show name
+  document.getElementById('sp-showname').value=settings.exportShowName||'';
+  // Date format
+  document.querySelectorAll('#sp-dateformat .sp-seg-btn').forEach(b=>b.classList.toggle('active',b.dataset.val===settings.exportDateFormat));
+}
+function openSettings(){
+  syncSettingsUI();
+  document.getElementById('settings-panel').classList.add('open');
+}
+function closeSettings(){
+  document.getElementById('settings-panel').classList.remove('open');
+}
+
+// Settings button + close
+document.getElementById('settings-btn').addEventListener('click',openSettings);
+document.getElementById('settings-close').addEventListener('click',closeSettings);
+
+// Theme
+document.getElementById('sp-theme').addEventListener('click',e=>{
+  const btn=e.target.closest('.sp-seg-btn');if(!btn)return;
+  settings.theme=btn.dataset.val;
+  syncSettingsUI();applyTheme();saveSettings();
+});
+// Panel size
+document.getElementById('sp-panelsize').addEventListener('click',e=>{
+  const btn=e.target.closest('.sp-seg-btn');if(!btn)return;
+  settings.panelSize=btn.dataset.val;
+  syncSettingsUI();saveSettings();renderCanvas();
+});
+// Voltage default
+document.getElementById('sp-voltage').addEventListener('click',e=>{
+  const btn=e.target.closest('.sp-seg-btn');if(!btn)return;
+  settings.defaultVoltage=+btn.dataset.val;
+  syncSettingsUI();saveSettings();
+});
+// Circuit default
+document.getElementById('sp-circuit').addEventListener('click',e=>{
+  const btn=e.target.closest('.sp-seg-btn');if(!btn)return;
+  settings.defaultCircuit=+btn.dataset.val;
+  syncSettingsUI();saveSettings();
+});
+// Panel type default
+document.getElementById('sp-paneltype').addEventListener('click',e=>{
+  const btn=e.target.closest('.sp-seg-btn');if(!btn)return;
+  settings.defaultPanelType=btn.dataset.val;
+  syncSettingsUI();saveSettings();
+});
+// Show name
+document.getElementById('sp-showname').addEventListener('input',e=>{
+  settings.exportShowName=e.target.value;saveSettings();
+});
+// Date format
+document.getElementById('sp-dateformat').addEventListener('click',e=>{
+  const btn=e.target.closest('.sp-seg-btn');if(!btn)return;
+  settings.exportDateFormat=btn.dataset.val;
+  syncSettingsUI();saveSettings();
+});
 document.getElementById('upcoming-btn').addEventListener('click',()=>document.getElementById('upcoming-overlay').classList.remove('hidden'));
 document.getElementById('upcoming-close').addEventListener('click',()=>document.getElementById('upcoming-overlay').classList.add('hidden'));
 document.getElementById('upcoming-overlay').addEventListener('click',e=>{if(e.target===document.getElementById('upcoming-overlay'))document.getElementById('upcoming-overlay').classList.add('hidden');});
@@ -2089,94 +2240,12 @@ function loadLocal(){
     if(data.layoutPositions)layoutPositions=data.layoutPositions;
   }catch(e){localStorage.removeItem(STORAGE_KEY);}
 }
-	// ══════════════════════════��════════════════
-	// SETTINGS
-	// ═══════════════════════════════════════════
-	const SETTINGS_KEY='pixelpath-settings';
 
-	function loadSettings(){
-	  try{
-		const saved=localStorage.getItem(SETTINGS_KEY);
-		if(!saved)return;
-		const settings=JSON.parse(saved);
-		// Apply theme
-		if(settings.theme){
-		  document.querySelectorAll('#theme-seg .seg-full-btn').forEach(b=>b.classList.remove('active'));
-		  document.querySelector(`#theme-seg [data-theme="${settings.theme}"]`)?.classList.add('active');
-		}
-		// Apply size
-		if(settings.size){
-		  document.querySelectorAll('#size-seg .seg-full-btn').forEach(b=>b.classList.remove('active'));
-		  document.querySelector(`#size-seg [data-size="${settings.size}"]`)?.classList.add('active');
-		}
-		// Apply voltage
-		if(settings.voltage){
-		  document.querySelectorAll('#voltage-seg .seg-full-btn').forEach(b=>b.classList.remove('active'));
-		  document.querySelector(`#voltage-seg [data-voltage="${settings.voltage}"]`)?.classList.add('active');
-		}
-		// Apply circuit
-		if(settings.circuit){
-		  document.querySelectorAll('#circuit-seg .seg-full-btn').forEach(b=>b.classList.remove('active'));
-		  document.querySelector(`#circuit-seg [data-circuit="${settings.circuit}"]`)?.classList.add('active');
-		}
-		// Apply panel type
-		if(settings.paneltype){
-		  document.querySelectorAll('#paneltype-seg .seg-full-btn').forEach(b=>b.classList.remove('active'));
-		  document.querySelector(`#paneltype-seg [data-paneltype="${settings.paneltype}"]`)?.classList.add('active');
-		}
-		// Apply date format
-		if(settings.dateformat){
-		  document.querySelectorAll('#dateformat-seg .seg-full-btn').forEach(b=>b.classList.remove('active'));
-		  document.querySelector(`#dateformat-seg [data-dateformat="${settings.dateformat}"]`)?.classList.add('active');
-		}
-		// Apply show name
-		if(settings.showname)document.getElementById('settings-showname').value=settings.showname;
-	  }catch(e){}
-	}
-
-	function saveSettings(){
-	  const settings={
-		theme:document.querySelector('#theme-seg .seg-full-btn.active')?.dataset.theme||'light',
-		size:document.querySelector('#size-seg .seg-full-btn.active')?.dataset.size||'medium',
-		voltage:document.querySelector('#voltage-seg .seg-full-btn.active')?.dataset.voltage||'208',
-		circuit:document.querySelector('#circuit-seg .seg-full-btn.active')?.dataset.circuit||'20',
-		paneltype:document.querySelector('#paneltype-seg .seg-full-btn.active')?.dataset.paneltype||'gmars',
-		dateformat:document.querySelector('#dateformat-seg .seg-full-btn.active')?.dataset.dateformat||'long',
-		showname:document.getElementById('settings-showname').value
-	  };
-	  try{localStorage.setItem(SETTINGS_KEY,JSON.stringify(settings));}catch(e){}
-	}
-
-	function openSettingsModal(){
-	  document.getElementById('settings-overlay').classList.remove('hidden');
-	}
-	function closeSettingsModal(){
-	  document.getElementById('settings-overlay').classList.add('hidden');
-	  saveSettings();
-	}
-
-	// Settings modal events
-	document.getElementById('settings-btn').addEventListener('click',openSettingsModal);
-	document.getElementById('settings-close').addEventListener('click',closeSettingsModal);
-	document.getElementById('settings-overlay').addEventListener('click',e=>{if(e.target===document.getElementById('settings-overlay'))closeSettingsModal();});
-
-	// Settings button click handlers
-	document.querySelectorAll('#theme-seg .seg-full-btn, #size-seg .seg-full-btn, #voltage-seg .seg-full-btn, #circuit-seg .seg-full-btn, #paneltype-seg .seg-full-btn, #dateformat-seg .seg-full-btn').forEach(btn=>{
-	  btn.addEventListener('click',e=>{
-		const parent=e.target.closest('.seg-full');
-		parent.querySelectorAll('.seg-full-btn').forEach(b=>b.classList.remove('active'));
-		e.target.classList.add('active');
-		saveSettings();
-	  });
-	});
-
-	document.getElementById('settings-showname').addEventListener('change',saveSettings);
-
-	// Load settings on init
-	loadSettings();
 // ═══════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════
+loadSettings();
+applyTheme();
 loadLocal();
 pushHistory();
 buildSwatches();

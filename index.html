@@ -3,26 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PixelPath v2.05</title>
+    <title>PixelPath v2.0.0</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <header>
-        <h1>Welcome to PixelPath v2.05</h1>
-    </header>
-    <main>
-        <section>
-            <h2>Features</h2>
-            <p>This version includes new features and improvements to enhance user experience.</p>
-        </section>
-        <section>
-            <h2>Getting Started</h2>
-            <p>To get started, ensure you have the following prerequisites...</p>
-        </section>
-    </main>
-    <footer>
-        <p>&copy; 2026 PixelPath. All rights reserved.</p>
-    </footer>
+    <div class="app">
+        <h1>PixelPath v2.0.0</h1>
+        <button id="settings-button">Settings</button>
+        <div id="settings-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-button">&times;</span>
+                <h2>Settings</h2>
+                <form id="settings-form">
+                    <label for="brightness">Brightness:</label>
+                    <input type="range" id="brightness" name="brightness" min="0" max="100" value="50">
+                    <label for="color">Color:</label>
+                    <input type="color" id="color" name="color" value="#ff0000">
+                    <button type="submit">Save</button>
+                </form>
+            </div>
+        </div>
+        <canvas id="led-panel" width="800" height="600"></canvas>
+    </div>
     <script src="script.js"></script>
 </body>
 </html>
